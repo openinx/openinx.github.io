@@ -115,5 +115,4 @@ while True: sleep(1)
    * 非阻塞队列实现很容易，就是一个znode下创建一些节点，按照字典序从小到大依次POP给客户端。
    * 阻塞队列，容许并发PUT， 但是只能有一个Client在POP。 
 
-#### Partitioner
 
