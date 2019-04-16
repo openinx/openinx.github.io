@@ -14,24 +14,29 @@ tags: [旅游]
 
 
 这张照片是我们一群人正午时分的合照。 
-<img src="http://imglf.nosdn.127.net/img/OWlmU3RBU2wvZzZnOFh2a0N3ZENUa29XR1Jjdm03RTJocVlRaXhLSXdkSzFiamQxblUxOU9RPT0.jpg?imageView&thumbnail=2000y1333&type=jpg&quality=96&stripmeta=0&type=jpg" width="100%">
+
+![hiking-1](/images/photo/hiking-1.jpg)
 
 在盘山公路上，两拨户外爱好者，一拨探索完毕收工回家，一拨前途漫漫无限期待。
-<img src="http://imglf1.nosdn.127.net/img/OWlmU3RBU2wvZzZnOFh2a0N3ZENUcFQ0YnYvdjg2RGQvREQxdzZIMFJiSDlWR2RZbEFZVGRnPT0.jpg?imageView&thumbnail=2000y1333&type=jpg&quality=96&stripmeta=0&type=jpg" width="100%">
+
+![hiking-2](/images/photo/hiking-2.jpg)
 
 公路盘旋，蜿蜒若蛇。
-<img src="http://imglf.nosdn.127.net/img/OWlmU3RBU2wvZzZnOFh2a0N3ZENUcUpkbzhrZGJqRmNLS1crUDlGSXgxYThKY3lKUWtUbEVnPT0.jpg?imageView&thumbnail=2000y1333&type=jpg&quality=96&stripmeta=0&type=jpg"
-width="100%">
+
+![hiking-3](/images/photo/hiking-3.jpg)
 
 三区交界点是门头沟区，海淀区，昌平区三区交界的地方。东南侧为海淀区，北侧为昌平区，西南侧为门头沟区。站在此处，视野开阔，北看八达岭长城，西看太行山余脉，东看紫禁城，这里时游客观景，摄影，看日出的好地方，也是驴友徒步登山的好地方。我也发现有很多驴友选择在这里露营，主要是这里地势最高，视野开阔，空间宽敞。下次有机会也要在这里体验露营体验一把。
-<img src="http://imglf0.nosdn.127.net/img/OWlmU3RBU2wvZzZnOFh2a0N3ZENUc3VqL1NQa3hMaEN1VEp6NnhMMU9oQnE1Z0Ruc2pDZm1BPT0.jpg?imageView&thumbnail=2000y1333&type=jpg&quality=96&stripmeta=0&type=jpg" width="100%">
+
+![hiking-4](/images/photo/hiking-4.jpg)
 
 过了三区分界点，到了凤凰岭一带。我们在下山路上，看到空中很多人在玩滑翔伞。下次有机会也要体验一把。
-<img src="http://imglf0.nosdn.127.net/img/OWlmU3RBU2wvZzZnOFh2a0N3ZENUcmo4WUhKZ0JVdHZLVkNES3dCMTZra0ZSNkhSRHNrV3NRPT0.jpg?imageView&thumbnail=2000y1333&type=jpg&quality=96&stripmeta=0&type=jpg" width="100%">
+
+![hiking-5](/images/photo/hiking-5.jpg)
 
 
-下面这张照片是我在凤凰岭下山的时候，拍到的一座山。我当时第一眼看到这座山惊呆了，这不就是一位身披铠甲，双手紧握，蹲坐在上坡上，仰头凝视远方的齐天大圣么！然而问了一下同行一伙人，都没看出来，好吧，我想多了。
-<img src="http://imglf1.nosdn.127.net/img/OWlmU3RBU2wvZzZnOFh2a0N3ZENUaUZXRlRreXZGQnJieUdiejRra3F1UFBMQWhaVUFVTWxRPT0.jpg?imageView&thumbnail=2000y1333&type=jpg&quality=96&stripmeta=0&type=jpg" width="100%">
+下面这张照片是我在凤凰岭下山的时候，拍到的一座山。我当时第一眼看到这座山惊呆了，这不就是一位身披铠甲，双手紧握，仰头凝视的齐天大圣么！然而问了一下同行一伙人，都没看出来，好吧，我想多了。
+
+![hiking-6](/images/photo/hiking-6.jpg)
 
 到了下午16点左右，我们顺利下山，大巴回家。
 

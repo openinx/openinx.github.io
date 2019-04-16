@@ -23,6 +23,10 @@ table{
   overflow: auto;
 }
 
+img{
+  width: 100%;
+}
+
 tr {
     background-color: #fff;
     border-top: 1px solid #ccc;
