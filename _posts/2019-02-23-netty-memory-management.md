@@ -10,7 +10,7 @@ __HBase的offheap现状__
 
 HBase作为一款流行的分布式NoSQL数据库，被各个公司大量应用，其中有很多业务场景，例如信息流和广告业务，对访问的吞吐和延迟要求都非常高。HBase2.0为了尽最大可能避免Java GC对其造成的性能影响，已经对读写两条核心路径做了offheap化，也就是对象的申请都直接向JVM offheap申请，而offheap分出来的内存都是不会被JVM GC的，需要用户自己显式地释放。在写路径上，客户端发过来的请求包都会被分配到offheap的内存区域，直到数据成功写入WAL日志和Memstore，其中维护Memstore的ConcurrentSkipListSet其实也不是直接存Cell数据，而是存Cell的引用，真实的内存数据被编码在MSLAB的多个Chunk内，这样比较便于管理offheap内存。类似地，在读路径上，先尝试去读BucketCache，Cache未命中时则去HFile中读对应的Block，这其中占用内存最多的BucketCache就放在offheap上，拿到Block后编码成Cell发送给用户，整个过程基本上都不涉及heap内对象申请。
 
-<img src="/images/hbase-offheap-onheap.png" width="70%">
+<img src="/images/hbase-offheap-onheap.png" width="90%">
 
 但是在小米内部最近的性能测试结果中发现，100% Get的场景受Young GC的影响仍然比较严重，在[HBASE-21879](https://issues.apache.org/jira/browse/HBASE-21879)贴的两幅图中，可以非常明显的观察到Get操作的p999延迟跟G1 Young GC的耗时基本相同，都在100ms左右。按理说，在[HBASE-11425](https://issues.apache.org/jira/browse/HBASE-11425)之后，应该是所有的内存分配都是在offheap的，heap内应该几乎没有内存申请。但是，在仔细梳理代码后，发现从HFile中读Block的过程仍然是先拷贝到堆内去的，一直到BucketCache的WriterThread异步地把Block刷新到Offheap，堆内的DataBlock才释放。而磁盘型压测试验中，由于数据量大，Cache命中率并不高(~70%)，所以会有大量的Block读取走磁盘IO，于是Heap内产生大量的年轻代对象，最终导致Young区GC压力上升。
 
@@ -32,7 +32,7 @@ Netty的内存管理设计的比较精细。首先，将内存划分成一个个
 
 多个Chunk又可以组成一个ChunkList，再根据Chunk内存占用比例（Chunk使用内存/16MB * 100%）划分成不同等级的ChunkList。例如，下图中根据内存使用比例不同，分成了6个不同等级的ChunkList，其中q050内的Chunk都是占用比例在[50,100)这个区间内。随着内存的不断分配，q050内的某个Chunk占用比例可能等于100，则该Chunk被挪到q075这个ChunkList中。因为内存一直在申请和释放，上面那个Chunk可能因某些对象释放后，导致内存占用比小于75，则又会被放回到q050这个ChunkList中；当然也有可能某次分配后，内存占用比例再次到达100，则会被挪到q100内。这样设计的一个好处在于，可以尽量让申请请求落在比较空闲的Chunk上，从而提高了内存分配的效率。
 
-<img src="/images/PoolThreadCache.png" width="70%">
+<img src="/images/PoolThreadCache.png" width="90%">
 
 仍以上述为例，某对象A申请了150B内存，二进制对齐后实际申请了256B的内存。对象A释放后，对应申请的Page也就释放，Netty为了提高内存的使用效率，会把这些Page放到对应的Cache中，对象A申请的Page是按照256B来划分的，所以直接按上图所示，进入了一个叫做TinySubPagesCaches的缓冲池。这个缓冲池实际上是由多个队列组成，每个队列内代表Page划分的不同尺寸，例如queue->32B，表示这个队列中，缓存的都是按照32B来划分的Page，一旦有32B的申请请求，就直接去这个队列找 __未占满的Page__。这里，可以发现，队列中的同一个Page可以被多次申请，只是他们申请的内存大小都一样，这也就不存在之前说的内存占用率低的问题，反而占用率会比较高。
 
