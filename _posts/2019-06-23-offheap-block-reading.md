@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Further GC optimization: Reading HFileBlock into offheap directly"
+title: "Further GC optimization for HBase3.x: Reading HFileBlock into offheap directly"
 description: ""
 category: 
 tags: []
