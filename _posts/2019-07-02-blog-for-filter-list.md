@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "漫谈HBase FilterList"
+title: "漫谈HBase Filter"
 description: ""
 category: 
 tags: []
@@ -10,9 +10,9 @@ __初衷__
 
 对数据库来说，满足业务多样化的查询方式非常重要。如果说有人设计了一个KV数据库，只提供了Get/Put/Scan这三种接口，估计要被用户吐槽到死，毕竟现实的业务场景并不简单。就以订单系统来说，查询给定用户最近三个月的历史订单，这里面的过滤条件就至少有2个：1. 查指定用户的订单；2. 订单必须是最近是三个月的。此外，这里的过滤条件还必须是用AND来连接的。如果通过Scan先把整个订单表信息加载到客户端，再按照条件过滤，这会给数据库系统造成极大压力。因此，在服务端实现一个数据过滤器是必须的。
 
-除了上例查询需求，类似小明或小黄最近三个月的历史订单这样的查询需求，同样很常见。这两个查询需求，本质上前者是一个AND连接的多条件查询，后者是一个OR连接的多条件查询，现实场景中AND和OR混合连接的多条件查询需求也很多。因此，HBase设计了用AND或OR来连接过滤条件的FilterList。
+除了上例查询需求，类似小明或小黄最近三个月的历史订单这样的查询需求，同样很常见。这两个查询需求，本质上前者是一个AND连接的多条件查询，后者是一个OR连接的多条件查询，现实场景中AND和OR混合连接的多条件查询需求也很多。因此，HBase设计了Filter以及用AND或OR来连接Filter的FilterList。
 
-例如，如下FilterList，表示将读到rowkey以abc为前缀且值为test的那些cell。
+例如下面的过滤器，表示用户将读到rowkey以abc为前缀且值为testA的那些cell。
 
 ```java
 fl = new FilterList(MUST_PASS_ALL,
@@ -20,7 +20,7 @@ fl = new FilterList(MUST_PASS_ALL,
                 new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes("testA")))
 );
 ```
-实际上，FilterList内部的子filter也可以是一个FilterList。例如下面表示将读到那些rowkey以abc为前缀且值为testA或testB的f列cell列表。
+实际上，FilterList内部的子Filter也可以是一个FilterList。例如下面过滤器表示用户将读到那些rowkey以abc为前缀且值为testA或testB的f列cell列表。
 
 ```java
 fl = new FilterList(MUST_PASS_ALL,
@@ -53,15 +53,36 @@ fl = new FilterList(MUST_PASS_ALL,
 
 __实现__
 
-1.各个Filter优化的问题，有的返回NEXT_COL,有的返回NEXT_ROW，有的返回SEEK_NEXT_HINT。
+Filter和FilterList作为一个通用的数据过滤框架，提供了一系列的接口，供用户来实现自定义的Filter。当然，HBase本身也提供了一系列的内置Filter，例如：PrefixFilter、RowFilter、FamilyFilter、QualifierFilter、ValueFilter、ColumnPrefixFilter等。
 
-2.用AND连接的FilterList，必须选最大的跳跃步数；
+事实上，很多Filter都没有必要在服务端从Scan的startRow一直扫描到endRow，中间有很多数据是可以根据Filter具体的语义直接跳过，通过减少磁盘IO和比较次数来实现更高的性能的。以PrefixFilter("333")为例，需要返回的是rowkey以“333”为前缀的数据。
 
-3.用OR连接的FilterList，必须选最小的跳跃步数。
+<img src="/images/filter-list-prefix-filter.png" width="100%">
 
-4.FilterList是Region级别内状态有效的。
+实际的扫描流程如图所示：
 
-5.Filter中返回的NEXT_ROW，其实是一个CF级别的NEXT_ROW。
+1) 碰到rowkey=111的行时，发现111比前缀333小，因此直接跳过111这一行去扫下一行，返回状态码NEXT_ROW；  
+2) 下一个Cell的rowkey=222，仍然比前缀333小，因此继续扫下一行，返回状态NEXT_ROW；  
+3) 下一个Cell的rowkey=333，前缀和333匹配，返回column=f:ddd这个cell个用户，返回状态码为INCLUDE；  
+4) 下一个Cell的rowkey仍为333，前缀和333匹配，返回column=f:eee这个cell给用户，返回状态码为INCLUDE；  
+5) 下一个Cell的rowkey为444，前缀比333大，不再继续扫描数据。  
+
+这个流程中，每碰到一个Cell，返回的状态码NEXT_ROW、INCLUDE等，就告诉了RegionServer扫描框架下一个Cell的位置。例如在第2步中，返回状态码NEXT\_ROW，那么下一个Cell的rowkey必须是比222大的，于是就跳过了column=f:ccc这个Cell，直接定位到了rowkey=333的行，继续扫描数据。
+
+在实际的Filter设计中，共引入了INCLUDE、INCLUDE\_AND\_NEXT\_COL、SKIP、NEXT\_COL、NEXT\_ROW、SEEK\_NEXT\_USING\_HINT共6种状态码。其中INCLUDE表示当前Cell应该返回给用户，同时自动读下一个Cell；INCLUDE\_AND\_NEXT_COL类似，表示当前Cell返回给用户，同时需要切换到下一个Column的Cell，也就是跟当前Cell相同Column的Cell都被跳过。SEEK\_NEXT\_USING\_HINT表示下一个待读取的Cell是用户根据Filter语义自定义的一个Cell，例如对PrefixFilter(333)来说，碰到rowkey=111的行时，其实是可以根据前缀为333直接定位到下一个rowkey=333的Cell，只是当前的PrefixFilter没有做这个优化。
+
+FilterList在处理状态码时则要稍微复杂一点，因为对同一个Cell每个子Filter的状态码都可能不一样，因此需要对多个子Filter的状态码进行合并。例如:
+
+```java
+fl = new FilterList(MUST_PASS_ALL,
+                new PrefixFilter("abc"),
+                new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes("testA")))
+);
+```
+
+在碰到rowkey=abb且value=testA的Cell（记为Cell-A）时，PrefixFilter返回的状态码应该是NEXT\_ROW，而ValueFilter返回的状态码应该是INCLUDE。对于用AND来连接的FilterList来说，应该取各状态码中跳跃步数最大的状态码，因此对Cell-A来说，fl这个FilterList得到的状态码将会是：max(NEXT\_ROW, INCLUDE) = NEXT\_ROW。
+
+简单来说，对某个Cell，用AND连接的FilterList，必须选各子Filter状态码跳跃步数最大的那个状态码；而用OR连接的FilterList，必须选各子Filter状态码跳跃步数最小的那个状态码。这其实是FilterList对比正常Filter来说，需要实现的一个最核心的工作，我们很早之前就在[HBASE-18410](https://issues.apache.org/jira/browse/HBASE-18410)将这块代码进行模块化重构，HBase1.4.x之后的版本都是使用重构之后的代码，用户在使用新版本FilterList时可以获得更精准的语义保证了。
 
 __一些优化__
 
@@ -193,4 +214,4 @@ scan.setLimit(1000);
 
 __总结__
 
-这些年社区的FilterList模块基本上是由我来负责维护和改进的。总结起来，一方面，本身HBase读路径上的概念繁多，诸如版本号、DeleteMarker、TTL、行、Family、列等，为实现这些功能读路径已经较为复杂；另一方面，Filter本身是一个高度抽象的框架，用户可以基于这个抽象的框架实现各种各样自定义的过滤器，实现需要考虑各种现实场景的适用性。对普通用户来说，正确和高效的使用，有一定的小门槛，因此写了这篇文章，希望对用户正确的使用和理解Filter以及FilterList有所帮助。
+这些年社区的Filter和FilterList模块基本上是由小米HBase团队来负责维护和改进的。总结起来，一方面，本身HBase读路径上的概念繁多，诸如版本号、DeleteMarker、TTL、行、Family、列等，为实现这些功能读路径已经较为复杂；另一方面，Filter本身是一个高度抽象的框架，用户可以基于这个抽象的框架实现各种各样自定义的过滤器，实现需要考虑各种现实场景的适用性。对普通用户来说，正确和高效的使用，有一定的小门槛，因此写了这篇文章，希望对用户正确的使用和理解Filter以及FilterList有所帮助。
