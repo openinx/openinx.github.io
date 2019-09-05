@@ -15,17 +15,6 @@ permalink: /about/
 * <a href="mailto:{{ site.email }}">邮箱</a>
 * [RSS订阅](/feed.xml)
 
-#### 友情链接(排名不分先后)
+另外，欢迎扫描如下二维码，关注我的个人公众号，届时将同步博客文章到公众号。
 
-* [网易后台技术官方博客](http://www.bitstech.net/)
-* [姜老大的博客](http://www.innomysql.net/)
-* [老蒋的博客](http://www.sysdb.cn/)
-* [郭忆与RDS](http://guoyirds.com/)
-* [明星的博客](http://mingxinglai.com/)
-* [辉总的博客](http://www.mysqlplay.com/)
-* [马进与DDB](http://www.majin163.com/)
-* [李者大神](http://senarukana.github.io/)
-* [段爷与CoreOS](http://www.serfdom.cn/)
-* [有态度的HBase](http://hbasefly.com/)
-* [魏子珺的博客](http://weizijun.cn/)
-* [杨哲的博客](http://yangzhe1991.org/)
+<img src="/images/qrcode_for_gh_0097a7ab6d3c_344.jpg" width="25%">
