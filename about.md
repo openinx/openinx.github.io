@@ -11,7 +11,7 @@ permalink: /about/
 #### 联系我
 
 * [GitHub](https://github.com/openinx)
-* [豆瓣](http://www.douban.com/people/68306838/)
+* [微博 - openinx2016](https://www.weibo.com/u/2250102240)
 * <a href="mailto:{{ site.email }}">邮箱</a>
 * [RSS订阅](/feed.xml)
 
