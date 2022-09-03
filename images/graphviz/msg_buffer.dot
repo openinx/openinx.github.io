@@ -1,0 +1,28 @@
+digraph msgbuffer{
+	rankdir = LR ; 
+	node [shape = record, style =filled];   
+	edge [style = bold]; 
+
+
+	memory [label = "<head> byte(0)|byte(1)|...|<tail> byte(used)|...|byte(size=2^N-1)", fillcolor="#CCCCFF"]; 
+
+
+	wbuf [label = "<head> num_entries(4B) | <msg0> msg(0) | msg(1) | ... |<tail> msg(num_entries-1) "]
+
+
+	msg0 [label = "<head> type(1B) | is_fresh(1B) | msn(8B) |  <xidbytes> xid-bytes | keylen (4B)| keybytes(keylen B) | vallen(4B) | <tail> valbytes(vallen B) ", fillcolor = "#A8E270"]
+
+
+	xid_bytes  [ label = "<head> num_xids (1B) | xid(0) (8B) | xid(1)  (8B) | ... | <tail> xid(num_xids-1) (8B)"]
+
+
+	memory:head -> wbuf:head; 
+	memory:tail -> wbuf:tail; 
+
+	wbuf:msg0 -> msg0:head; 
+	wbuf:msg0 -> msg0:tail;
+
+	msg0:xidbytes -> xid_bytes:head;
+	msg0:xidbytes -> xid_bytes:tail; 
+
+}	

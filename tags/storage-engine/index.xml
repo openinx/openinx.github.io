@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Storage Engine on Openinx Blog</title>
+    <link>https://openinx.github.io/tags/storage-engine/</link>
+    <description>Recent content in Storage Engine on Openinx Blog</description>
+    <image>
+      <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Fri, 01 Jul 2022 12:00:24 +0800</lastBuildDate><atom:link href="https://openinx.github.io/tags/storage-engine/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>SQLServer的列存更新方案</title>
+      <link>https://openinx.github.io/posts/2022-07-01-realtime-update-in-columar-table/</link>
+      <pubDate>Fri, 01 Jul 2022 12:00:24 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2022-07-01-realtime-update-in-columar-table/</guid>
+      <description>最近读了一下 Microsoft 在 2015 年 VLDB 上发表的论文 《Real-Time Analytical Processing with SQL Server》[1]。SQLServer算是业内较早实现并落地 HTAP 行列更新方案的产品，我其实觉得 行存（Row-Wise Index） 在OLTP场景下的各种设计以及取舍，大家都已经讨论的非常清楚了。对于高效率的 毫秒级列存更新 方案，业界有一些方案设计和实现，典型的如Kudu[2]、Positional Delta Tree[3] 等，但远不如行存讨论的多。我仔细的 Review 了一下 SQLServer 的技术方案，觉得他们的设计还是颇具参考意义。本文分享一下我对这篇文章的一些看法。
+论文主要讲了 4 个方面的话题：
+内存中实现列存表； 对于行存表，怎么实现一个列存索引结构，从而实现分析型 SQL 的极大提速。这部分的重点就是怎么实现列存二级索引的实时更新； 对于列存表怎么实现一个 B-Tree 的二级索引，使得这个列存表可以用来做点查和小范围扫描； 计算层在列存表的扫描性能上做了哪些优化。 第1部分纯内存的列存表相对比较简单，第4部分的列存表扫描在业界的很多论文中都可以找到类似的方案。第2部分和第3部分相对比较独特，可以说是整篇文章的精华，也是我比较感兴趣的部分。
+其实第2部分，可以认为是在一个已经存在的OLTP表上，怎么来创建一个OLAP的列存索引，使得这个表可以跑 “TP为主，AP为辅” 的两种QUERY；而第3部分正好完全相反，相当于是在一个纯粹的OLAP列存表之上，创建一个适合做 点查 和 小范围 查询的行存索引，使得这个表可以完成 “AP为主，TP为辅” 的混合QUERY。
+&amp;ldquo;TP为主，AP为辅“ 的索引方案 SQL Server的这种 CSI （Columnar Store Index）更新方案，说实话其实在 写入延迟 和 读取延迟 上处理的还算比较恰当。对于列存索引来说，如果是 INSERT 的话，那么直接 Append 到 Delta Store 里面就行，没啥其他的额外耗时操作；如果是 DELETE 的话，先看一下 DELETE 的 key 是否在 Delta Store 里面，如果在就直接删除即可；如果不在，就插入一条 Delete Marker 到这个由 B-Tree 索引实现的 Delete Buffer。无论是 INSERT 还是 DELETE 操作，都没有特别耗时的地方。可能往 B-Tree 索引实现的 Delete Buffer 里面写 Delete Marker 会有点儿耗时，但这个 Delete Buffer 一般都是最近更新比较热的数据。首先体量不会特别大，其次，大部分的都是热数据，都会被 Cache 到内存。然后，后台有一个任务， 会默默地把 Delete Buffer 里面的 Delete 操作都转换成 Delete Bitmap。</description>
+    </item>
+    
+    <item>
+      <title>Pingcap Hackthon2019</title>
+      <link>https://openinx.github.io/posts/2019-10-26-pingcap-hackthon2019/</link>
+      <pubDate>Sat, 26 Oct 2019 13:16:43 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2019-10-26-pingcap-hackthon2019/</guid>
+      <description>最近参加了TiDB的Hackthon2019比赛，一直都想写一篇总结，现在总算有点时间来写一下。
+这是一个围绕 TiDB 分布式数据库展开的一个编程比赛，在 48 小时内完成一个可以展示的 demo，并在 6 分钟内向评委说明项目思路及展示demo。理论上，要求这个demo从实用性、易用性、性能三个方面来优化TiDB（占评分40%），“当然作品的完成度也是一个很重要的考核方向（占30%)，其他就是创新性（占20%）和展示度了（占10%）。
+我们队共有三个同学：队长是来自 PingCAP 美国 office 的吴毅同学，他之前在 facebook 负责 RocksDB 的研发，目前在PingCAP 主要负责 RocksDB 的研发和性能优化，另外一个北京 office 的张博康同学，负责TiKV的研发。由于我们队三个人都是做存储底层的研发，所以就想尝试在今年的 Hackthon 上做一些偏底层的工作。在比赛前，我们大致确认可能会尝试的几个小方向：
+第一个是做一套 TiKV 的分布式 trace，用来跟进一个 TiKV 请求整个生命周期的耗时情况，便于诊断性能。由于这是一个非常普遍的方向，我们预估可能会有不少团队跟我们撞车，另外印象中现在 TiKV 已经实现了部分工作，所以就没有选择这个方向。
+第二个是把一个图查询引擎套在 TiKV 之上，实现一个图数据库。我们初步想好可以用这个图数据库展示社交网络中的三度人脉。在不需要我们开发前端的前提下，可以借助开源的图查询前端来展示 demo，至少演示上不会吃亏。这个其实是一个不错的候选，但不确定工作量有多大，最后也没有选择这个方向。
+第三个是用最新 linux 引入的高性能纯异步实现的 IO 接口 liburing 来重写部分 rocksdb 的实现，期望能给 TiKV 带来更好的性能提升。这个课题看起来跟我们三个成员的背景比较匹配，于是最终我们选择了这个课题。
+我们队吴毅和博康选择在北京 office 比赛，而我离上海比较近，所以就去了上海。为此还申请了异地组队权限（感谢下PingCAP 开放的组委会），我们应该是唯一的三人两地的队伍了。
+我们大致阅读了 liburing 的技术文档，大致确定可以尝试用这套异步 IO 接口重写 RocksDB 的写 WAL 流程和Compaction 流程。另外也调研到 facebook 之前已经尝试过用 io_uring 重写 RocksDB 的 MultiRead 实现，发现随机读的 IOPS 能翻三倍，接口延迟也下降不少，所以我们想用 TiKV 的一个场景来说明可以从中获得性能收益。</description>
+    </item>
+    
+    <item>
+      <title>TokuDB的多版本并发控制(MVCC)</title>
+      <link>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</link>
+      <pubDate>Sun, 13 Dec 2015 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</guid>
+      <description>本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。
+背景介绍 在传统的关系型数据库（例如Oracle, MySQL, SQLServer）中，事务可以说是研发和讨论最核心内容。而事务最核心的性质就是ACID。 其中 A表示事务的原子性，也就是组成事务的所有子任务只有两种结果： 要么随着事务的提交，所有子任务都成功执行；要么随着事务的回滚，所有子任务都撤销。 C表示一致性，也就是无论事务提交或者回滚，都不能破坏数据的一致性约束，这些一致性约束包括键值唯一约束、键值关联关系约束等。I表示隔离性，隔离性一般是针对多个并发事务而言的，也就是在同一个时间点，t1事务和t2事务读取的数据应该是隔离的，这两个事务就好像进了同一酒店的两间房间一样，各自在各自的房间里面活动，他们相互之间并不能看到各自在干嘛。D表示持久性，这个性质保证了一个事务一旦承诺用户成功提交，那么即便是后继数据库进程crash或者操作系统crash，只要磁盘数据没坏，那么下次启动数据库后，这个事务的执行结果仍然可以读取到。
+TokuDB目前完全支持事务的ACID。 从实现上看， 由于TokuDB采用的分形树作为索引，而InnoDB采用B+树作为索引结构，因而TokuDB在事务的实现上和InnoDB有很大不同。 本文主要讲讲TokuDB的事务隔离性的实现，也就是常提到的多版本并发控制(MVCC)。在InnoDB中， 设计了redo和undo两种日志，redo存放页的物理修改日志，用来保证事务的持久性； undo存放事务的逻辑修改日志，它实际存放了一条记录在多个并发事务下的多个版本，用来实现事务的隔离性(MVCC)和回滚操作。
+由于TokuDB的分形树采用消息传递的方式来做增删改更新操作，一条消息就是事务对该记录修改的一个版本，因此，在TokuDB源码实现中，并没有额外的undo-log的概念和实现，取而代之的是一条记录多条消息的管理机制。虽然一条记录多条消息的方式可以实现事务的MVCC，却无法解决事务回滚的问题，因此TokuDB额外设计了tokudb.rollback这个日志文件来做帮助实现事务回滚。
+TokuDB的事务表示 在tokudb中， 在用户执行的一个事务，具体到存储引擎层面会被拆开成许多个小事务(这种小事务记为txn)。 例如用户执行这样一个事务：
+begin; insert into hello set id = 1, value = &amp;#39;1&amp;#39;; commit; 对应到TokuDB存储引擎的redo-log中的记录为：
+xbegin &amp;#39;b&amp;#39;: lsn=236599 xid=15,0 parentxid=0,0 crc=29e4d0a1 len=53 xbegin &amp;#39;b&amp;#39;: lsn=236600 xid=15,1 parentxid=15,0 crc=282cb1a1 len=53 enq_insert &amp;#39;I&amp;#39;: lsn=236601 filenum=13 xid=15,1 key={...} value={...} crc=a42128e5 len=58 xcommit &amp;#39;C&amp;#39;: lsn=236602 xid=15,1 crc=ec9bba3d len=37 xprepare &amp;#39;P&amp;#39;: lsn=236603 xid=15,0 xa_xid={...} crc=db091de4 len=67 xcommit &amp;#39;C&amp;#39;: lsn=236604 xid=15,0 crc=ec997b3d len=37 对应的事务树如下图所示：</description>
+    </item>
+    
+    <item>
+      <title>TokuDB的索引结构：分形树的实现</title>
+      <link>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</link>
+      <pubDate>Wed, 25 Nov 2015 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</guid>
+      <description>本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query, Insert/Delete/Update操作, 并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。
+分形树简介 分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的B+树)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。
+工业界实现分形树最重要的产品就是Tokutek公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在Github上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为TokuDB， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为TokuMX。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。
+本文主要讨论的是TokuDB的ft-index。 ft-index相比B+树的几个重要特点有：
+从理论复杂度和测试性能两个角度上看， ft-index的Insert/Delete/Update操作性能优于B+树。 但是读操作性能低于B+树。 ft-index采用更大的索引页和数据页（ft-index默认为4M, InnoDB默认为16K）， 这使得ft-index的数据页和索引页的压缩比更高。也就是说，在打开索引页和数据页压缩的情况下，插入等量的数据， ft-index占用的存储空间更少。 ft-index支持在线修改DDL (Hot Schema Change)。 简单来讲，就是在做DDL操作的同时(例如添加索引)，用户依然可以执行写入操作， 这个特点是ft-index树形结构天然支持的。 由于篇幅限制，本文并不对Hot Schema Change的实现做具体描述。 此外， ft-index还支持事务(ACID)以及事务的MVCC(Multiple Version Cocurrency Control 多版本并发控制)， 支持崩溃恢复。
+正因为上述特点， Percona公司宣称TokuDB一方面带给客户极大的性能提升， 另一方面还降低了客户的存储使用成本。
+ft-index的磁盘存储结构 ft-index的索引结构图如下(在这里为了方便描述和理解，我对ft-index的二进制存储做了一定程度简化和抽象， 具体的二进制存储格式可以参考我的博客)：
+在下图中， 灰色区域表示ft-index分形树的一个页，绿色区域表示一个键值，两格绿色区域之间表示一个儿子指针。 BlockNum表示儿子指针指向的页的偏移量。Fanout表示分形树的扇出，也就是儿子指针的个数。 NodeSize表示一个页占用的字节数。NonLeafNode表示当前页是一个非叶子节点，LeafNode表示当前页是一个叶子节点，叶子节点是最底层的存放Key-value键值对的节点， 非叶子节点不存放value。 Heigth表示树的高度， 根节点的高度为3， 根节点下一层节点的高度为2， 最底层叶子节点的高度为1。Depth表示树的深度，根节点的深度为0， 根节点的下一层节点深度为1。
+分形树的树形结构非常类似于B+树, 它的树形结构由若干个节点组成（我们称之为Node或者Block，在InnoDB中，我们称之为Page或者页）。 每个节点由一组有序的键值组成。假设一个节点的键值序列为[3, 8], 那么这个键值将(-00, +00)整个区间划分为(-00, 3), [3, 8), [8, +00) 这样3个区间， 每一个区间就对应着一个儿子指针（Child指针）。 在B+树中， Child指针一般指向一个页， 而在分形树中，每一个Child指针除了需要指向一个Node的地址(BlockNum)之外，还会带有一个Message Buffer (msg_buffer)， 这个Message Buffer 是一个先进先出(FIFO)的队列，用来存放Insert/Delete/Update/HotSchemaChange这样的更新操作。</description>
+    </item>
+    
+    <item>
+      <title>LevelDB Compaction原理</title>
+      <link>https://openinx.github.io/posts/2014-08-17-leveldb-compaction/</link>
+      <pubDate>Tue, 16 Sep 2014 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2014-08-17-leveldb-compaction/</guid>
+      <description>leveldb基本约束 在默认options下，leveldb的一些基本约束:
+leveldb的level有0,1,2,3,4,5,6共7个取值; 第0层的sstable在4M左右; 第i(i&amp;gt;0)层的sstable每个sstable最大空间不超过2M; 第0层的sstable理想的情况是4个，尽量控制在8个以内，最大值不超过12; 第i(i&amp;gt;0)层的所有sstable所占存储空间之和控制在10^i M左右;
+这里说的_控制_不是指严格控制，而是总体上大致控制; Compaction定义 minor compaction
+从内存中拿出一个immtable，直接dump成sstable文件，然后根据_一定的策略_放到第i(i&amp;gt;=0)层。记_策略函数_为 PickLevelForMemTableOutput(). majar compaction
+从第i(i&amp;gt;=0)层按照_估价函数_取出一个或多个sstable,这些sstable集合记为up(i)集合。找出第i+1层与up(i)集合有overlap的sstable，记为down(i)集合。将up(i),down(i)两个集合的所有sstable做多路归并排序之后，导出的sstable全部放在i+1层。这个过程称为majar compaction. 记计算up(i)集合的估价函数为PickCompaction(i). Minor Compaction触发的条件 以下几个条件同时满足时，才会触发Minor Compaction:
+在调用put/delete API时，发现memtable的使用空间超过4M了； 当前的immtable已经被dump出去成sstable. 也就是immtable=NULL
+在上面的两个条件同时满足的情况下，会阻塞写线程，把memtable移到immtable。然后新起一个memtable，让写操作写到这个memtable里。最后将imm放到后台线程去做compaction. Majar Compaction触发的条件 以下任一条件满足时，都会触发Major Compaction:
+调用CompactRange这个API，手动触发compaction; 调用Get这个API的过程中，发现seek的第一个sstable的AllowedSeek消耗完了; 第0层的sstable超过8个; 第i(i&amp;gt;0)层的所有sstable的占用空间超过10^i M; 其中第4点一般是在第i层做了一次compaction之后，发现i+1层的不满足_leveldb基本约束5_了，导致再做一次compaction.
+Minor Compaction流程 1. sstable = MemtableDumpToSSTable(immtable); 2. i = PickLevelForMemTableOutput(sstable); 3. place SSTable to level i; 3. edit= getVersionEdit(); 4. updateVersionSet(); 其中层次选择函数PickLevelForMemTableOutput()如下：
+int PickLevelForMemTableOutput(sst){ if( (sst overlap with Level[0]) OR (sst overlap with level[1])) return 0; else{ overlapBytes := calculateOverlapBytes(sst, level[2]); if( overlapBytes &amp;gt; 20M ) return 0 ; else return 1 ; } } Majar Compaction流程 MajarCompaction() c, i := PickCompaction(); // i is level if( up(i).</description>
+    </item>
+    
+  </channel>
+</rss>

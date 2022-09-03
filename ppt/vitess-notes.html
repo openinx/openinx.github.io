@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vitess 解析</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/css/ppt.css">
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle
+
+# Vitess 解析
+.footnote[openinx@gmail.com]
+
+---
+layout: false
+.left-column[
+  ## Vitess Introduction
+]
+.right-column[
+
+- Suppoted by Golang, GTID
+
+- youtube 2011~2015 , github 2000+ star
+
+- vitess provides servers and tools which facilitate scaling of MySQL databases for large scale web services.
+
+- about 8w line(test code exclude)
+
+- client(bson SSL) java/python/go
+]
+
+---
+
+layout: false
+.left-column[
+  ## Golang ?
+]
+.right-column[
+- minimalist
+
+- goroutines
+
+- channels & selects
+
+- closures
+
+- defers
+
+- generics
+
+- GC
+
+- map, slices
+
+- performace: java < go < c/c++
+
+]
+
+---
+
+layout: false
+.left-column[
+  ## Golang ?
+]
+.right-column[
+```go
+func main() {
+  blockQueue := make(chan int64, 10)
+  checkIsPrimer := func(x int64) bool {
+    for i := int64(2); i*i <= x; i++ {
+      if x%i == int64(0) {
+        return false
+      }
+    }
+    return true
+  }
+
+  go func() {
+    var maxPrime int64
+    for i := int64(0); i < int64(10000000); i++ {
+      if checkIsPrimer(i) {
+        maxPrime = i
+      }
+    }
+    blockQueue <- maxPrime
+  }()
+
+  tmr := time.NewTimer(10 * time.Second)
+  defer tmr.Stop()
+
+  select {
+  case firstPrimer := <-blockQueue:
+    fmt.Printf("the first Primer: %d\n", firstPrimer)
+  case <-tmr.C:
+    fmt.Printf("time " + strconv.Itoa(10) + " exceed")
+  }
+}
+```
+]
+
+---
+
+layout: false
+.left-column[
+  ## Vitess Features
+]
+.right-column[
+
+- dynamic  resharding
+
+- auto-failover
+
+- row-cache
+
+- limit inefficiency SQL
+
+- more client connection
+
+- replication lag optimization
+
+- multi data center
+]
+
+---
+class: center, middle
+layout: false
+.left-column[
+  ##  Vitess Topo
+]
+
+.right-column[
+<img src="/images/vitess-topo.png" width=120%>
+]
+
+---
+layout: false
+.left-column[
+  ## Vitess concepts
+]
+.right-column[
+- keyspace/keyspaceId
+
+- vtctl
+
+- vttablet
+
+- vtgate
+
+- vtctld
+
+- vtworker
+
+- vtprimecache
+]
+
+---
+
+layout: false
+.left-column[
+  ## Vitess concepts
+]
+
+.right-column[
+- keyspaceId 
+
+- unique Index 
+
+- Non-unique Index 
+
+- second index support Select only
+
+- How to find shards by keyspaceId ? 
+
+<img src="/images/vitess-vindex.png" width="80%">
+]
+
+---
+
+layout: false
+.left-column[
+  ## Configure Server
+]
+.right-column[
+
+```shell
+/zk/global/vt/keyspaces
+
+/zk/global/vt/keyspaces/action
+
+/zk/global/vt/keyspaces/actionlog
+
+/zk/global/vt/keyspaces/shards   
+
+/zk/global/vt/keyspaces/<keyspace>/shards/<shard>
+
+/zk/global/vt/keyspaces/<keyspace>/shards/<shard>/action
+
+/zk/global/vt/keyspaces/<keyspace>/shards/<shard>/actionlog
+
+/zk/global/vt/vschema
+
+/zk/<cell>/vt/tablets
+
+/zk/<cell>/vt/tablets/<table-uid>
+```
+]
+
+---
+layout: false
+.left-column[
+  ## Configure Server
+]
+
+.right-column[
+```shell
+$ zk cat /zk/global/vt/keyspaces/ruser/shards/10-20
+{
+  "MasterAlias": {
+    "Cell": "nyc",
+    "Uid": 200278
+  },
+  "KeyRange": {
+    "Start": "10",
+    "End": "20"
+  },
+ "Cells": [
+    "oe",
+    "yh"
+ ]
+}
+```
+]
+
+---
+
+layout: false
+.left-column[
+  ## Configure Server
+]
+.right-column[
+```shell
+$ zk cat /zk/nyc/vt/tablets/0000200308
+{
+  "Alias": {
+    "Cell": "nyc",
+    "Uid": 200308,
+  },
+  "Parent": {
+    "Cell": "",
+    "Uid": 0
+  },
+  "Keyspace": "",
+  "Shard": "",
+  "Type": "idle",
+  "State": "ReadOnly",
+  "DbNameOverride": "",
+  "KeyRange": {
+    "Start": "",
+    "End": ""
+  }
+}
+```
+]
+
+---
+
+layout: false
+.left-column[
+  ## Vtgate - Structure
+]
+
+.right-column[
+  <img src="/images/vtgate-erd.png" width="105%">
+]
+
+---
+layout: false
+.left-column[
+  ## Vtgate – SQL Example
+]
+.right-column[
+  <img src="/images/vitess-schema-test-json.png" width="120%">
+]
+
+---
+layout: false
+.left-column[
+  ## Vtgate – SQL Example
+]
+.right-column[
+  <img src="/images/vitess-plan.png" width="60%">
+]
+
+---
+layout: false
+<img src="/images/vitess-sql-plan.png" width="110%">
+
+
+---
+layout: false
+.left-column[
+  ## Vttablet
+]
+.right-column[
+- User Auth 
+
+- SQL Filter 
+
+- Binlog Filter 
+
+- Backup
+
+- Restore
+
+- Diffs
+
+- Row Limit
+
+- Kill Timeout SQL
+
+- Query blacklisting 
+
+- row cache 
+
+- more stats & monitor
+]
+
+---
+layout: false
+## Vttable Structure
+<img src="/images/vttablet-structure.png" width="100%">  
+---
+layout: false
+.left-column[
+  ## Vitess Resharding
+]
+.right-column[
+- read scaling up ? 
+  
+  — replica
+
+- write scale up ?
+  
+  — split
+
+- dynamic shard
+
+- scale
+
+- less than 5 seconds read-only downtime
+]
+
+---
+layout: false
+.left-column[
+  ## Vitess Resharding
+]
+.right-column[
+  <img src="/images/vitess-sharding.png" width="100%">  
+]
+
+---
+
+layout: false
+.left-column[
+  ## Vitess Resharding 
+]
+.right-column[
+- shard0, shard1, origin master  —> vttablet 
+
+- prepare two spare shard0, shard1
+
+- vtgate point to origin master
+
+- multi-snapshot : data & repl-pos
+
+- multi-restore
+
+- set shard0, shard1 read-only.
+
+- shard0, shard1 replication to orign master
+
+- set origin master read-only
+
+- wait until shard0, shard1 catch origin master.
+
+- update configure server, vtgate point to shard0, shard1
+]
+
+---
+layout: false
+.left-column[
+  ## Vitess Snapshot
+]
+
+.right-column[
+1. prepare
+
+2. set read-only
+
+3. stop slave
+
+4. get master position & slave position.
+
+5. flush tables with read lock
+
+6. backup
+```sql
+select {.keyspaceIdColumnName}, {.Columns} \
+INTO outfile {.dataPath} character         \
+set binary fields terminated by ‘,’        \
+optionally  enclosed by “”                 \
+escaped by ‘\\’ lines terminated by ‘\n’   \
+from {.tableName}
+```
+
+7. write manifest 
+
+9. gzip
+]
+
+---
+layout: false
+.left-column[
+  ## Vitess RowCache
+]
+.right-column[
+- RowCache VS MySQL Buffer Pool
+
+- LRUCache
+
+- Base on binlog
+
+- DDL ?
+  - key=prefix +body 
+
+  - every DDL —> prefix:=prefix+1
+  
+  - lastest prefix + Body
+  
+  - vttable restart ?
+]
+
+---
+layout: false
+.left-column[
+  ## Vitess Cons
+]
+.right-column[
+- bson
+
+- cross-shard groupBy, Limit, having, distinct, orderBy, insert, delete, update.
+
+- cross-shard index
+
+- cross-shard joins
+
+- distribute transaction
+
+- sync replication
+
+- part of second index 
+]
+
+---
+<img src="/images/vitess-compare.png" width="110%">  
+---
+
+## References
+
+-  https://code.google.com/p/vitess/
+
+-  https://github.com/youtube/vitess
+
+-  http://vitess.googlecode.com/files/Vitess_Percona_2012.pdf
+
+-  http://vdisk.weibo.com/s/7JmTtKze0rn?from=page_100505_profile&wvr=6
+
+---
+
+class: center, middle
+# Thank you.
+
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+          highlightStyle: 'monokai',
+          highlightLanguage: 'remark',
+          highlightLines: true
+        }) ;
+      //var slideshow = remark.create();
+    </script>
+  </body>
+</html>

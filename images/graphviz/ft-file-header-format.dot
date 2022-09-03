@@ -1,0 +1,68 @@
+digraph{
+
+	rankdir = LR ; 
+	node [shape = record, style =filled];   
+	edge [style = bold]; 
+
+
+	head0       [ label = "tokudata(8B offset=0) | 
+						   version(4B) | 
+						   build-id(4B) | 
+						   size(4B) |
+						   toku_byte_order_host(8B)|
+						   checkpoint_count(8B)|
+						   checkpoint_lsn(8B)|
+						   <data> ...|
+						   x1764checksum(4B)", fillcolor="#CCCCFF"
+						   ]
+
+	head1       [ label = "tokudata(8B offset=4096) | 
+						   version(4B) | 
+						   build-id(4B) | 
+						   size(4B) |
+						   toku_byte_order_host(8B)|
+						   checkpoint_count(8B)|
+						   checkpoint_lsn(8B)|
+						   <data>...|
+						   x1764checksum(4B)", fillcolor="#CCCCFF"
+						   ]
+
+	data   [label = "<header> nodesize(4B) | 
+	                 <trans_addr> translation_address_on_disk(8B) | 
+	                 translation_size_on_disk(8B) | 
+	                 root_blocknum(8B) | 
+	                 flags(4B) | 
+	                 layout_version_original(4B) | 
+	                 build_id_original (4B) | 
+	                 time_of_creation(8B) | 
+	                 time_of_last_modification (8B) | 
+	                 root_xid_that_created(8B) | 
+	                 basementnodesize(4B) | 
+	                 time_of_last_verification (8B) | 
+	                 on_disk_stats.numrows(8B) | 
+	                 on_disk_stats.numbytes(8B) | 
+	                 time_of_last_optimize_begin(8B)|
+	                 time_of_last_optimize_end(8B) | 
+	                 count_of_optimize_in_progress(4B) | 
+	                 msn_at_start_of_last_completed_optimize(8B) | 
+	                 compression_method(1B) | 
+	                 highest_unused_msn_for_upgrade(8B) | 
+	                 max_msn_in_ft (8B) | 
+	                 fanout (4B) 
+	                 "]
+
+
+
+	translation_table  [label = "<header> length_of_block(8B)|
+	                             blocknum_freelist_head(8B)|
+	                             diskoff[0] (8B) | 
+	                             size[0] (8B)	|
+	                             ...|
+	                             diskoff[length_of_block-1] (8B) | 
+	                             size[length_of_block-1] (8B) |
+	                             x1764checksum(4B) "]
+
+	head0:data -> data:header
+	head1:data -> data:header
+	data:trans_addr -> translation_table:header
+}

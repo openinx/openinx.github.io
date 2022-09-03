@@ -1,0 +1,10 @@
+digraph TokudbTxnTree{
+	rankdir = TD
+	node [shape=record, style=filled]
+	edge [style = bold]
+
+	root [label = "<head> txn0 \{15,0\}"]
+	child1 [label = "<head> txn1 \{15,1\}"]
+
+	root:head -> child1:head
+}

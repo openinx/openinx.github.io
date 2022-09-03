@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Distribute on Openinx Blog</title>
+    <link>https://openinx.github.io/tags/distribute/</link>
+    <description>Recent content in Distribute on Openinx Blog</description>
+    <image>
+      <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Wed, 28 Jun 2017 13:27:08 +0800</lastBuildDate><atom:link href="https://openinx.github.io/tags/distribute/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>HBase Region Balance实践</title>
+      <link>https://openinx.github.io/posts/2016-06-21-hbase-balance/</link>
+      <pubDate>Wed, 28 Jun 2017 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2016-06-21-hbase-balance/</guid>
+      <description>HBase是一种支持自动负载均衡的分布式KV数据库，在开启balance的开关(balance_switch)后，HBase的HMaster进程会自动根据 指定策略 挑选出一些Region，并将这些Region分配给负载比较低的RegionServer上。官方目前支持两种挑选Region的策略，一种叫做DefaultLoadBalancer，另一种叫做StochasticLoadBalancer，这两种策略后面会具体讲到。由于HBase的所有数据(包括HLog/Meta/HStoreFile等)都是写入到HDFS文件系统中的， 因此HBase的Region移动其实非常轻量级。在做Region移动的时候，保持这个Region对应的HDFS文件位置不变，只需要将Region的Meta数据分配到相关的RegionServer即可，整个Region移动的过程取决于RegionClose以及RegionOpen的耗时，这个时间一般都很短。
+本文来讲讲hbase的balance实现。
+Balance的流程 首先通过LoadBalancer找出所有需要移动的region plan，一个region plan包括region/原始RegionServer/目的RegionServer三个属性。 unassign region , 将region从原来的RegionServer上解除绑定； assign region ，将region绑定到目标RegionServer上; 其中， unassign region的具体流程为：
+create zk closing node . 该节点在/unassigned路径下， 包含(znode状态，region名字，原始RS名，payload)这些数据。 hmaster 调用rpc服务关闭region server。region-close的流程大致为先获取region的writeLock ， 然后flush memstore, 再并发关闭该region下的所有的store file文件(注意一个region有多个store，每个store又有多个store file , 所以可以实现并发close store file) 。最后释放region的writeLock. 设置zk closing node的znode状态为closed. assgin region的具体流程为:
+获取到对应的Region Plan. HMaster调用rpc服务去Region Plan对应的RegionServer上open region. 这里会先更新/unassigned节点为opening. 然后并发Load HStore，再更行zk/ROOT/META表信息，这里是为了client下次能获取到正确的路由信息， 最后更新region状态为OPEN. DefaultLoadBalancer策略 这种策略能够保证每个RS的regions个数基本上都相等，确切来说，假设一共有n个RS，第i个RS有Ai个region，记average=sigma(Ai)/n , 那么这种策略能够保证所有的RS的region个数都在[floor(average), ceil(average)]之间。这种策略的实现简单，应用广泛。
+但是，这种策略考虑的因素比较单一， 没有考虑到每台region server的读写qps/负载压力等等，这样就可能导致出现一种情况：虽然每个region server的regions都非常接近，但是90%的请求还是落在了一台RS上，因为这台RS上的region全部都是热点数据，这样还是没有达到负载均衡的目的。 但我觉得balance的首要目的是保证数据均衡，如果在数据均衡的情况下，负载还是集中，这时候就要考虑下rowKey的选择是否有问题了。因此, 我个人还是比较推荐采用DefaultLoadBalancer的。
+StochasticLoadBalancer策略 StochasticLoadBalancer 这种策略真的是非常复杂，简单来讲，是一种综合权衡一下6个因素的均衡策略：
+每台RegionServer读请求数(ReadRequestCostFunction) 每台RegionServer写请求数(WriteRequestCostFunction) 每台RegionServer的Region个数(RegionCountSkewCostFunction) 移动代价(MoveCostFunction) 数据locality(TableSkewCostFunction) 每张表占据RegionServer中region个数上限(LocalityCostFunction) 对于cluster的每一种region分布， 采用6个因素加权的方式算出一个代价值，这个代价值就用来评估当前region分布是否均衡，越均衡则代价值越低。然后通过成千上万次随机迭代来找到一组RegionMove的序列，使得最终的代价值严格递减。 得到的这一组RegionMove就是HMaster最终执行的region迁移方案。</description>
+    </item>
+    
+    <item>
+      <title>HBase回放Hlog顺序不一致的问题</title>
+      <link>https://openinx.github.io/posts/2016-06-13-hbase-replicate-hlog/</link>
+      <pubDate>Mon, 13 Jun 2016 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2016-06-13-hbase-replicate-hlog/</guid>
+      <description>在HBase的主从复制集群中, 如下图左所示，Region-Server-X以及Region-Server-Y是master集群中的两个Region-Server。正常情况下， 对Region-A的写入会在Region-Server-X上append log 到Hlog-X，然后Region-Server-X会异步地将该部分Hlog批量地应用(apply)到slave-cluster中。 此时，若Region-Server-X发生了宕机，那么Region-A会被Region-Server-Y托管，之后业务开始写Region-A导致append log到Hlog-Y日志， 同时 Region-Server-Y会新开一个线程去执行Hlog-X的replay任务，这样就会出现Region-A的Hlog-X以及Hlog-Y同时写入slave-cluster的情况出现。也就是说, Region-A的Hlog在slave cluster中的回放顺序错乱。
+另外，Region Move也会产生类似的问题，即两个Region Server并发回放Hlog导致回放顺序错乱。
+当Region-A的Hlog日志回放顺序错乱时，会导致主从集群最终数据不一致的问题：在master cluster上，先执行put操作，然后执行delete操作（delete操作是为了删除put的记录），在slave cluster中回放的顺序可能变成先执行delete 操作， 再执行put操作。如果在delete操作之后put操作之前，slave cluster的region-server 做了一次major compaction， 那么会导致出现put的数据没有被删除的情况。
+另外，日志回放数据错乱还可能会导致slave-cluster数据处于一个从未在maser-cluster上出现过的状态。
+该问题现在依然存在于hbase的系统中，社区也对此进行过多次讨论，但现在依然没有解决。下面简单阐述小米HBase团队提出的一种解决思路:
+把Region-A 从Region-Server-X上move 到Region-Server-Y，让Region-Server-Y托管Region-A。此时Region-A可读可写，但Region-A产生的Hlog-Y并不会立刻推送到slave-cluster上； 某个Region-Server将Hlog-X中的Region-A的日志推送到slave-cluster； 等待Hlog-X中Region-A的日志全部回放到slave-cluster之后，Region-Server-Y开始推送HLog-Y日志到slave-cluster上。 这里，还需要考虑一种比较极端的情况。如下图所示，有X , Y , Z 三个Region-Server, 其中X负责A/B/C 3个region, Y负责D/E 2 个region, Z 负责F 1个region。若此时X发生crash， A/B 2个region被迁往Z，C这个region被迁往Y，之后Y开始接收Region-C的读写请求，在C写了一小段数据之后，Y这个Region-Server又发生了宕机，于是D/E/C 3个region全部都被迁移到Z。
+对于Region-C而言，为了保证Hlog推送到slave-cluster严格有序，必须先推送Hlog-X中的日志，然后再推送Hlog-Y中的日志，最后推送Hlog-Z的日志。对于Region-Server宕机的这种情况而言，由于宕机的Hlog并不会增长，因此依次回放Hlog-X/Hlog-Y中所有的日志即可；但对于Region迁移这种情况（仍以上图为例，假设Region-C从X迁移到Y），Region-Sever-X的Hlog-X会不断增长，因此在Region-Server-Y托管Region-C时需要记录下Region-C在Hlog-X中的MaxSequenceId，当回放的HLog-X的seqId&amp;gt;=MaxSequenceId时，就可以开始回放Hlog-Y的日志了。
+因此，为了统一处理，无论region failover 还是region move，需要做以下记录：
+Y从X上托管Region-C时，记录Hlog-X的MaxSequenceId到HBase的meta表中； 在Z从Y上托管Region-C时，记录Hlog-Y的MaxSequenceId到HBase的meta表中。 &amp;hellip;&amp;hellip; 极端情况下，一个Region在多个Region-Server之间做多次迁移，会形成一条MaxSequenceId链表，为了保证改Region的Hlog回放顺序严格一致，必须依序回放各个Region-Server对应的Hlog，直到该段Hlog回放到对应的MaxSequenceId，接着回放下一段hlog。这样就能保证HLog在Region Move/Region Server Failover时，Region的回放顺序严格一致了。
+目前该方案的设计方案已经发到社区了，小米HBASE团队也将对此进行修复。对该问题的更多相关讨论可以参考HBASE-9465。
+总结 本文介绍了一种保证Hlog回放顺序严格一致的方案，可以解决master-cluster和slave-cluster数据不一致的问题。该方案可能会导致region在迁移过程中master-cluster和slave-cluster复制延迟增大（新方案必须严格等待上一段hlog回放，才能回放下一段hlog），整个过程相当于牺牲了主备集群replication的及时性，换来主从集群间数据最终一致性。
+参考资料 https://issues.apache.org/jira/browse/HBASE-9465 https://issues.apache.org/jira/browse/ACCUMULO-2931 https://issues.apache.org/jira/browse/HBASE-10275 https://hbase.apache.org/0.94/replication.html </description>
+    </item>
+    
+  </channel>
+</rss>

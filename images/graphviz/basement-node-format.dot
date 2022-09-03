@@ -1,0 +1,43 @@
+digraph bndata{
+	rankdir = LR ; 
+	node [shape = record, style =filled];   
+	edge [style = bold]; 
+
+	bn_header [label = "<header> key_data_size(4B) | \
+					  val_data_size(4B) | \
+					  fixed_klpair_length(4B) | \
+					  all_keys_same_length(1B) | \
+					  keys_vals_sparate(1B)"];
+
+
+	bn_leaf_entry_list [label = "<header> leaf-entry[0] | \
+								 leaf-entry[1] | 
+								 ... | 
+								 leaf-entry[ (m_buffer.size() - 1)]"];
+
+
+	leafentry [label = "<header> leafentry-type(1B) | \ 
+						key-len (4B) | 
+						<body> leaf-entry-body (not sure)"]; 
+
+	leaf_entry_body_clean [label = "<header> leafentry-type == CLEAN | 
+							       vallen(4B) | 
+							       key-bytes(keylen B) | 
+							       val-bytes(vallen B)"]
+
+	leaf_entry_body_mvcc [label = "<header> leafentry-type == MVCC | 
+							       num_cxrs(4B) | 
+							       num_pxrs(4B) | 
+							       key-bytes(keylen B) | 
+							       xrs-bytes (le_disk_size - 1 - 4 - 1)"]
+
+
+	wbuf [label = "<header> basement-node-header|<body> basement-node-body", fillcolor="#CCCCFF"]; 
+
+	wbuf:header -> bn_header:header;
+	wbuf:body -> bn_leaf_entry_list:header;
+	bn_leaf_entry_list:header -> leafentry:header; 
+
+	leafentry:body -> leaf_entry_body_clean:header; 
+	leafentry:body -> leaf_entry_body_mvcc:header;
+}

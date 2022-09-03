@@ -1,0 +1,30 @@
+digraph {
+	rankdir = TD
+	node [shape = record, style =filled];   
+	edge [style = bold]; 
+
+
+    commited_txn   [ label = "<head> commited-txn" ]
+    // uncommied_txn  [ label = "<head> uncommited-txn "]
+
+	array [ label = "<a0> 0 | 1 | 2 | 3 | 4 |  5 | <a5> NewCommitedValue | <a6>  |  |  |", fillcolor="#CCCCFF"]
+
+
+	detail [ label = "<head> [txid, type, len, data] "]
+	cxrs   [ label = "<head> cxrs" ]
+	end    [ label = "<head> cxrs + pxrs - 1"]
+
+
+
+	commited_txn:head -> array:a0
+	commited_txn:head -> array:a5
+
+
+	//uncommied_txn:head -> array
+	//uncommied_txn:head -> array
+
+
+	array:a0 -> detail:head 
+	array:a6 -> cxrs: head 
+	array:a5 -> end: head
+}

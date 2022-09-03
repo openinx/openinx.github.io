@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Algorithm on Openinx Blog</title>
+    <link>https://openinx.github.io/tags/algorithm/</link>
+    <description>Recent content in Algorithm on Openinx Blog</description>
+    <image>
+      <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Tue, 16 Sep 2014 13:27:08 +0800</lastBuildDate><atom:link href="https://openinx.github.io/tags/algorithm/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Google2015校招笔试 Round B</title>
+      <link>https://openinx.github.io/posts/2014-09-16-google-apac-2015-test-round-b/</link>
+      <pubDate>Tue, 16 Sep 2014 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2014-09-16-google-apac-2015-test-round-b/</guid>
+      <description>昨天做了下Google在线校招笔试，算法一天不做题，水平就擦擦往下掉。
+Poblem A. Password Attacker 描述 问由N个不同字符组成的长度为M的密码串有多少个？ 其中对每个密码串所有的N个不同字符都必须出现过.
+答案1 Brute Force 下面方程的每一组解作全排列之后的所有计数累加，就是答案。假设有一组解为X1,&amp;hellip;,Xn,那么该组解的排列之后有 M!/(X1! * X2! * &amp;hellip; * Xn!)，所有解累加即答案。
+sigma(Xi) = M , Xi &amp;gt;= 1 且 1&amp;lt;=i&amp;lt;=N M&amp;lt;=15的小数据可以通过DFS过掉，但是M&amp;lt;=100的大数据无法过掉。
+答案2 DP dp[i,j]表示从N中字符中选择j种不同字符组成的长度为i的密码串的个数。 那么所求答案为dp[M, N]. 递推式为:
+dp[0, 0] = 1 dp[0, i] = 0 ( 1&amp;lt;=i&amp;lt;=M ) dp[i,j] = dp[i-1, j] * j + dp[i-1, j-1] * (n - (j-1)) 其中dp[i-1,j-1] * (n - j + 1) 代表前面i-1个密码串只用了j-1个字符，那么第i个密码可以从剩余的n-(j-1)个字符总任选一个。
+答案3 第二类stirling数 第二类stirling数的意义是: 将n个不同的元素分成k个等价类, 记为S(n,k)， 递推式为:</description>
+    </item>
+    
+    <item>
+      <title>Leetcode 151总结</title>
+      <link>https://openinx.github.io/posts/2014-07-20-leetcode-151-finished/</link>
+      <pubDate>Sun, 20 Jul 2014 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2014-07-20-leetcode-151-finished/</guid>
+      <description>刷了若干天leetcode, 总算弄完了。代码在这里。
+Reverse Words in a String 模拟 字符串
+Evaluate Reverse Polish Notation 模拟 后缀表达式求值
+Max Points on a Line 平面给出N个点，找一个直线，使得经过的点数最多。枚举每个点，以此为原点坐标，求出相对原点坐标，然后计算y/x，用hash表计数求出最大的重复值。O(N^2)
+Sort List QuickSort和MergeSort链表版本. O(NlogN) 值得注意的情况是所有元素都相同时，假设qsort分段从左到右的话，qsort会退化O(N^2).
+Insertion Sort List 插入排序链表实现. O(N^2)
+LRU Cache LRU-Cache算法。最有复杂度保证每次get,set操作都为O(1). 双向链表+Hash。 用C++10的STL的LIST和MAP的GET，SET复杂度O(logN)
+Binary Tree Postorder Traversal 智商着急，写个栈模拟后序遍历都卡半天。 网上有很简洁的写法。
+void postOrderTraversalIterativeTwoStacks(BinaryTree *root) { if (!root) return; stack&amp;lt;BinaryTree*&amp;gt; s; stack&amp;lt;BinaryTree*&amp;gt; output; s.push(root); while (!s.empty()) { BinaryTree *curr = s.top(); output.push(curr); s.pop(); if (curr-&amp;gt;left) s.push(curr-&amp;gt;left); if (curr-&amp;gt;right) s.push(curr-&amp;gt;right); } while (!</description>
+    </item>
+    
+    <item>
+      <title>Zookeeper的客户端Kazoo</title>
+      <link>https://openinx.github.io/posts/2014-06-07-learning-from-kazoo/</link>
+      <pubDate>Sat, 07 Jun 2014 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2014-06-07-learning-from-kazoo/</guid>
+      <description>Zookeeper自然不用我多讲了，一个分布式协调工具。有几个问题我比较好奇：
+Zookeeper如何实现watcher的异步回调？ （代码细节） Zookeeper的分布式锁如何实现？ Zookeeper的Queue, barrier等东东怎么玩的？ 看了下python版本的ZK客户端kazoo的实现，明白了个大概。
+举个简单客户端编程的例子 #!/usr/bin/python import logging from time import sleep from kazoo.client import KazooClient # print log to console logging.basicConfig(format=&amp;#39;%(levelname)s:%(message)s&amp;#39;, level=logging.DEBUG) zk = KazooClient(&amp;#39;127.0.0.1:2181&amp;#39;) zk.start() def children_callback(children): print &amp;#39;****&amp;#39; , children children = zk.get_children(&amp;#39;/zookeeper&amp;#39;, children_callback) zk.create(&amp;#39;/zookeeper/goodboy&amp;#39;) #zk.delete(&amp;#39;/zookeeper/goodboy&amp;#39;) while True: sleep(1) Kazoo实现异步的大致思路 首先有个前提：每一个Client向服务器发送Request的时候，都会带有一个xid , 每请求一次，xid加1， 同时zk服务端对单个客户端的请求处理士严格按照xid从小到大的顺序来处理并返回。 在这个条件下，客户端每次发送请求之前，先把(request, async_object, xid)这个元组放到一个pending队列里面(其中request包含了请求信息， async_object里面含有回调函数)，然后当zk服务端有任何response返回的时候，直接从pending队列中取队首元素就可以完成之前注册的回调函数。
+其实更一般的实现是这样的: 客户端发送异步请求时，都在本地存放一个(request,async_object, xid) 元组到map里面。 然后当异步返回response的时候， 根据返回的xid到map里面找出相应的(request, async_objec, xid)， 这样就可以执行回调函数了。 鉴于zookeeper处理请求的有序性，所有只用一个pending队列求能轻松搞定。
+有几个问题需要考虑：
+每个API既可以异步调用，又可以同步调用。当然同步调用可用在异步调用的基础上实现。 每个Znode上面的Watcher都要采用异步触发的方式实现。 不能阻塞主线程，因为主线程要执行上层开发者的代码逻辑。 Kazoo的实现原理（以上述代码片段为例） 给出几点解释：</description>
+    </item>
+    
+    <item>
+      <title>从第K元素看数据结构</title>
+      <link>https://openinx.github.io/posts/2014-03-02-the-k-the-number-in-algorithm/</link>
+      <pubDate>Sun, 02 Mar 2014 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2014-03-02-the-k-the-number-in-algorithm/</guid>
+      <description>本文涉及的源代码及文章请点击这里下载。
+这篇文章讨论的是序列中第K大或第K小元素，由于第K大元素可以转化为求第N-K+1小元素（N为序列的长度），所以，本文专注于讨论第K小元素。 本文讨论的几个问题：
+对给定整数序列，求该序列中第K小的元素。 对某一整数序列，允许动态更改序列中的数。动态查询序列中第K小元素。 给定一个整数序列和若干个区间，回答该区间内第K小元素。 对某一整数序列，允许动态更改序列中的数。动态查询序列中的第K小元素。 关键字 第K小元素 树状数组 线段树 平衡二叉树 归并树 划分树 单调队列 堆 块状表
+问题一 问题描述： 给出一个乱序整数序列a[1…n] ，求该序列中的第K小元素。（1&amp;lt;=K&amp;lt;=N）。
+算法分析： 用基于快速排序的分治算法，期望复杂度为O(N)。
+代码： int qs(int *a , int l , int r , int k){ if(l == r) return a[l] ; int i = l , j = r , x = a[(l+r)&amp;gt;&amp;gt;1] , temp ; do{ while(a[i] &amp;lt; x) ++ i ; while(a[j] &amp;gt; x) -- j ; if(i &amp;lt;= j){ temp = a[i] ; a[i] = a[j] , a[j] = temp ; i++ ; j-- ; } }while(i&amp;lt;=j) ; if(k &amp;lt;= j) return qs(a , l , j , k); if(k &amp;gt;= i) return qs(a , i , r , k); return x ; } 练习 RQNOJ 350 这题数据量比较小1≤N≤10000,1≤M≤2000 。所以计算量不会超过10^7。当然用到后面的归并树或划分树，能将复杂度降低。</description>
+    </item>
+    
+    <item>
+      <title>谈谈Redis字典的实现</title>
+      <link>https://openinx.github.io/posts/2014-02-13-the-implement-of-redis-dict/</link>
+      <pubDate>Thu, 13 Feb 2014 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2014-02-13-the-implement-of-redis-dict/</guid>
+      <description>Hash表（Hash Table）
+hash表实际上由size个的桶组成一个桶数组table[0&amp;hellip;size-1] 。当一个对象经过哈希之后，得到一个相应的value , 于是我们把这个对象放到桶table[ value ]中。当一个桶中有多个对象时，我们把桶中的对象组织成为一个链表。这在冲突处理上称之为拉链法。
+负载因子（load factor）
+假设一个hash表中桶的个数为 size , 存储的元素个数为used .则我们称 used / size 为负载因子loadFactor . 一般的情况下，当loadFactor&amp;lt;=1时，hash表查找的期望复杂度为O(1). 因此，每次往hash表中添加元素时，我们必须保证是在loadFactor&amp;lt;1的情况下，才能够添加。
+容量扩张（Expand）&amp;amp; 分摊转移
+当我们添加一个新元素时，一旦loadFactor大于等于1了，我们不能单纯的往hash表里边添加元素。因为添加完之后，loadFactor将大于1，这样也就不能保证查找的期望时间复杂度为常数级了。这时，我们应该对桶数组进行一次容量扩张，让size增大 。这样就能保证添加元素后 used / size 仍然小于等于1 ， 从而保证查找的期望时间复杂度为O(1).但是，如何进行容量扩张呢？ C++中的vector的容量扩张是一种好方法。于是有了如下思路 ：　Hash表中每次发现loadFactor==1时，就开辟一个原来桶数组的两倍空间（称为新桶数组），然后把原来的桶数组中元素全部转移过来到新的桶数组中。注意这里转移是需要元素一个个重新哈希到新桶中的，原因后面会讲到。
+这种方法的缺点是，容量扩张是一次完成的，期间要花很长时间一次转移hash表中的所有元素。这样在hash表中loadFactor==1时，往里边插入一个元素将会等候很长的时间。 redis中的dict.c中的设计思路是用两个hash表来进行进行扩容和转移的工作：当从第一个hash表的loadFactor=1时，如果要往字典里插入一个元素，首先为第二个hash表开辟2倍第一个hash表的容量，同时将第一个hash表的一个非空桶中元素全部转移到第二个hash表中，然后把待插入元素存储到第二个hash表里。继续往字典里插入第二个元素，又会将第一个hash表的一个非空桶中元素全部转移到第二个hash表中，然后把元素存储到第二个hash表里……直到第一个hash表为空。
+这种策略就把第一个hash表所有元素的转移分摊为多次转移，而且每次转移的期望时间复杂度为O(1)。这样就不会出现某一次往字典中插入元素要等候很长时间的情况了。
+为了更深入的理解这个过程，先看看在dict.h中的两个结构体：
+typedef struct dictht { dictEntry **table; unsigned long size; unsigned long sizemask; unsigned long used; } dictht; typedef struct dict { dictType *type; void *privdata; dictht ht[2]; int rehashidx; /* rehashing not in progress if rehashidx == -1 */ int iterators; /* number of iterators currently running */ } dict; dictht指的就是上面说的桶数组，size用来表示容量，一般为2^n ，sizemask（一般为2^n-1,二进制表示为n个1）用来对哈希值取模 , used表示hash表中存储了多少个元素。 dict表示字典，由两个桶数组组成，type是一些函数指针（哈希函数及key，value的一些处理函数）。</description>
+    </item>
+    
+    <item>
+      <title>平面扫描思想在ACM竞赛中的应用</title>
+      <link>https://openinx.github.io/posts/2013-01-01-plane-sweep-thinking/</link>
+      <pubDate>Tue, 01 Jan 2013 13:27:08 +0800</pubDate>
+      
+      <guid>https://openinx.github.io/posts/2013-01-01-plane-sweep-thinking/</guid>
+      <description>摘要: 平面扫描思想在计算几何，计算机图形学，网格计算等计算机理论领域有广泛的应用。有非常多的经典算法借助平面扫描的思想极大的降低了算法时间复杂度。例如线段相交问题、平面上多矩形轮廓算法、平面多矩形求交、空间冲突检测算法、Voronoi图构造算法、平面最近点对等等。
+本文介绍了在ACM程序设计竞赛中经常用到的几个平面扫描算法。根据这些算法的作用，大致分为以下几类：
+数据统计； 几何实体位置关系的检测； 最近点对。 本文依次选取了三类算法中具有代表性的经典算法加以介绍，并有针对性的剖析了大量经典ACM算法竞赛试题，以期对ACM程序设计竞赛参赛者起到抛砖引玉的作用。 关键字 平面扫描 ; ACM大学生程序设计竞赛 ; 算法 ; 数据统计 ; 几何实体位置关系; 最近点对
+第一章：引言 ACM国际大学生程序设计竞赛(英文全称:ACM International Collegiate Programming Contest（ACM-ICPC或ICPC）是由美国计算机协会（ACM）主办的，一项旨在展示大学生创新能力、团队精神和在压力下编写程序、分析和解决问题能力的年度竞赛。经过近30多年的发展，ACM国际大学生程序设计竞赛已经发展成为最具影响力的大学生计算机竞赛。
+竞赛的历史可以上溯到1970年，当时在美国德克萨斯A&amp;amp;M大学举办了首届比赛。当时的主办方是the Alpha Chapter of the UPE Computer Science Honor Society。作为一种全新的发现和培养计算机科学顶尖学生的方式，竞赛很快得到美国和加拿大各大学的积极响应。1977年，在ACM计算机科学会议期间举办了首次总决赛，并演变成为目前的一年一届的多国参与的国际性比赛。迄今已经举办了35届。
+平面扫描思想是一种在计算几何、计算机图形学等领域经常用到的算法优化思想。由于ACM程序设计竞赛是一类对算法时间复杂度和空间复杂度要求非常高的高水平竞赛。竞赛中出现的许多的计算几何题目和高级数据结构题目都可以通过运用平面扫描的思想优化时空复杂度，使得程序能在题目给定的时间限制和空间限制下快速求出问题的解。
+平面扫描算法一般由扫描线、事件点和当前扫描线事件点集合三个部分组成。扫描线一般是一根平行于坐标轴的水平线（或垂直线）。它按照从上到下（或从左到右）的顺序，依次检测事件点，通过删除或新增事件点来维护当前扫描线事件点集合。当前扫描线事件点集合通常都是用线段树、树状数组、红黑树等平衡二叉树来维护的，特殊情况下也需要用Hash表、块状表、跳跃链表等高级数据结构来达到维护目的。通过查询当前扫描线事件点集合的相关信息，我们就可以获得问题的答案。
+正文将ACM竞赛中的扫描线算法分成三类，并依次介绍相关类型的算法。希望对参赛者的算法学习有所帮助。
+第二章：算法介绍及试题剖析 第一节：数据统计 经典问题A 平面坐标系上有N个矩形，这些矩形的四条边都平行于X轴或Y轴。每个矩形可以被其他矩形部分或者完全遮盖，所有矩形合并成区域的边界周长称为轮廓周长。例如图1中所有矩形的轮廓如图2所示：
+请设计一个算法，计算所有矩形的轮廓周长。
+输入 平面上N个矩形，第i个矩形用左下顶点坐标(Xi, Yi)和右上顶点坐标(UXi, UYi)表示。
+输出 所有矩形轮廓周长。
+算法分析 先离散化。用每个矩形的四边所在直线将二维平面切割。这样，就只要考虑AB这样的单元线段了。把组成轮廓的单元线段长度相加就是矩形轮廓周长和。假设L1, L2 &amp;hellip;, L8 各竖直线经过映射后对应于mapx1,mapx2 &amp;hellip;, mapx8。为方便描述，令mapx0=mapx1。
+这样，考虑mapx(i-1)到mapxi之间的横向单元线段属于轮廓的总长度。在[mapx(i-1), mapx(i)]之间任作一竖直线L，将所有与L相交的矩形在L上的投影线段求并后的独立不相交线段数计为count,则共有2count(mapxi - mapx(i-1))长度的横向线段为轮廓长度。
+例如，在L6和L7之间的作一条竖直线段L，与L相交的矩形有两个，它们在L上的投影分别为AB和CD，将AB和CD求并后，算出的独立不相交的线段数count=2。所以，在之间的横线单元线段属于轮廓的总长度就等于2count(L7-L6)=4*(L7-L6)。
+通过上面分析，我们已经能够计算出所有轮廓周长中平行于x轴的总长度了。当然，可以通过类似的方法求出轮廓周长中平行于y轴的总长度。但是，在竖直线从左到右扫描的过程中，我们可以通过更为简洁的方法得到轮廓周长中平行于y轴的总长度。
+考虑与L7相交的矩形在L7上的投影为[E,F]U[G,H]，与L8相交的矩形在上的投影为[I,J]，当竖直线扫描线从L7扫描到L8时，[E,F]就“露”了出来，成为竖直轮廓的一部分。这个[E,F]正好是L7上投影和L8上投影绝对值之差。如果相邻的扫描线的矩形投影分别为M1, M2 , 那么，在扫描过程中“露出”的纵向边长度为|M1-M2|。
+综上所述，所有属于轮廓周长的横向边总长度和纵向边总长度已经可以计算出来，这样横向总长度和纵向总长度相加就是轮廓周长的总长度。
+我们可以用扫描线从左到右依次扫描并更改相应状态的方式来描述这个计算过程。这里扫描线就是穿过各矩形竖直边的直线。事件点就是各矩形的竖直边，其中我们定义一个矩形的左边为插入事件，右边为删除事件。由于这里事件处理包括线段的插入和删除，所以当前扫描线事件点集合可以用一颗线段树来维护。 这颗线段树SegmentTree应该能够提供以下几种操作：</description>
+    </item>
+    
+  </channel>
+</rss>

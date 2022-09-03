@@ -1,0 +1,78 @@
+digraph tokudb_leaf_entry{
+	rankdir = LR
+	node [shape = record, style =filled];   
+	edge [style = bold]; 
+
+
+	leafentry [label = "<head> leafentry"]
+
+	clean_leafentry [ label = "<head> type == LE_CLEAN (1B) | value-len (4B) | value-bytes (value-len B)" ]
+
+	mvcc_leafentry [ label = "<head> type == LE_MVCC (1B) | num_cxrs (4B) | num_pxrs (4B) | <tail> xrs-bytes "]
+
+
+	xrs_bytes [label = "<outmost>  stack[num_cxrs].txid (8B)| 
+	                    <commited_txid_end> stack[cxrs -1].txid (8B) | 
+	                    ... |
+	                    <commited_txid_start> stack[1].txid (8B)|
+	                    <innermost_length_and_bit> stack[cxrs + pcxrs -1 ].length_and_bit (4B) | 
+	                    <commited_txn_length_and_bit_end> stack[cxrs -1].length_and_bit (4B) | 
+	                    ... | 
+	                    <commited_txn_length_and_bit_start> stack[0].length_and_bit (4B) |
+	                    <innermost_data>stack[cxrs + pxrs - 1].value (variables B) | 
+	                    <commited_txn_data_end> stack[cxrs -1].value (variables B)| 
+	                    ...|
+	                    <commited_txn_data_start> stack[0].value (variables B)|
+	                    <outmost_uncommited_txn_value0>stack[cxrs].type_and_length(1B + 4B) |
+	                    <outmost_uncommited_txn_value1> stack[cxrs].value (variables B) | 
+	                    <uncommited_txn_value0> stack[cxrs + 1].txid (8B) | 
+	                    stack[cxrs + 1].type_and_length (1B + 4B) | 
+	                    stack[cxrs + 1].data (variables B) |
+	                    ...|
+	                    stack[cxrs + pxrs - 2].txid (8B) | 
+	                    stack[cxrs + pxrs - 2].type_and_length (1B + 4B)|
+	                    <uncommited_txn_value1> stack[cxrs + pxrs - 2].data (variables B)|
+	                    <innermost_txn_txid> stack[cxrs + pxrs - 1].txid "]
+
+	outmost_xid [label = "<head> outmost_uncommited_txn_txid" ]
+	commited_txid [label = "<head> commited_txn_txid"]
+    innormost_length_and_bit [label = "<head> innormost_uncommited_txn_length_and_bit"]
+    commited_txn_length_and_bit [label = "<head> commited_txn_length_and_bit"]
+    innermost_data [label = "<head> innormost_uncommited_txn_data"]
+    commited_txn_data [label = "<head> commited_txn_data"]
+    outmost_uncommited_txn_value [label = "<head> outmost_uncommited_txn_value"]
+    uncommited_txn_value [label = "<head> uncommited_txn_value"]
+    innermost_txn_txid [label = "<head> innermost_uncommited_txn_txid"]
+
+
+
+	xrs_bytes:outmost -> outmost_xid:head 
+
+	xrs_bytes:commited_txid_end -> commited_txid:head
+
+	xrs_bytes:commited_txid_start -> commited_txid:head
+	xrs_bytes:innermost_length_and_bit -> innormost_length_and_bit:head
+
+	xrs_bytes:commited_txn_length_and_bit_end -> commited_txn_length_and_bit:head
+	xrs_bytes:commited_txn_length_and_bit_start -> commited_txn_length_and_bit:head
+
+	xrs_bytes:innermost_data -> innermost_data:head
+
+	xrs_bytes:commited_txn_data_end -> commited_txn_data:head
+	xrs_bytes:commited_txn_data_start -> commited_txn_data:head
+
+
+	xrs_bytes:outmost_uncommited_txn_value0 -> outmost_uncommited_txn_value:head 
+	xrs_bytes:outmost_uncommited_txn_value1 -> outmost_uncommited_txn_value:head
+
+	xrs_bytes:uncommited_txn_value0 -> uncommited_txn_value:head
+	xrs_bytes:uncommited_txn_value1 -> uncommited_txn_value:head
+
+
+	xrs_bytes:innermost_txn_txid -> innermost_txn_txid:head
+
+
+	mvcc_leafentry:tail -> xrs_bytes:outmost
+	leafentry:head -> clean_leafentry:head
+	leafentry:head -> mvcc_leafentry:head
+}

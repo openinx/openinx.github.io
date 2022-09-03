@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+Sitemap: https://openinx.github.io/sitemap.xml
