@@ -5,512 +5,908 @@
     <link>https://openinx.github.io/</link>
     <description>Recent content on Openinx Blog</description>
     <image>
+      <title>Openinx Blog</title>
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 01 Jul 2022 12:00:24 +0800</lastBuildDate><atom:link href="https://openinx.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <generator>Hugo -- 0.143.1</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 17 Jul 2022 11:07:35 +0800</lastBuildDate>
+    <atom:link href="https://openinx.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>About</title>
       <link>https://openinx.github.io/about/</link>
       <pubDate>Sun, 17 Jul 2022 11:07:35 +0800</pubDate>
-      
       <guid>https://openinx.github.io/about/</guid>
-      <description>我叫 OpenInx, 这个ID的全文是Open in X，象征着探索未知的世界。我热衷探索，喜欢开源软件。我对数据库和编程语言抱有极大兴趣和热情，希望和志同道合的朋友共同成长进步。
-我的公开分享
-联系我 GitHub 微博 - openinx2016 RSS订阅 另外，欢迎扫描如下二维码，关注我的个人公众号，届时将同步博客文章到公众号。</description>
+      <description>&lt;p&gt;我叫 &lt;strong&gt;OpenInx&lt;/strong&gt;, 这个ID的全文是Open in X，象征着探索未知的世界。我热衷探索，喜欢开源软件。我对数据库和编程语言抱有极大兴趣和热情，希望和志同道合的朋友共同成长进步。&lt;/p&gt;
+&lt;p&gt;&lt;a href=&#34;https://openinx.github.io/posts/2012-01-01-my-share/&#34;&gt;我的公开分享&lt;/a&gt;&lt;/p&gt;
+&lt;h4 id=&#34;联系我&#34;&gt;联系我&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/openinx&#34;&gt;GitHub&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.weibo.com/u/2250102240&#34;&gt;微博 - openinx2016&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://openinx.github.io/posts/index.xml&#34;&gt;RSS订阅&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;另外，欢迎扫描如下二维码，关注我的个人公众号，届时将同步博客文章到公众号。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/qrcode_for_gh_0097a7ab6d3c_344.jpg&#34;&gt;&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>SQLServer的列存更新方案</title>
       <link>https://openinx.github.io/posts/2022-07-01-realtime-update-in-columar-table/</link>
       <pubDate>Fri, 01 Jul 2022 12:00:24 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2022-07-01-realtime-update-in-columar-table/</guid>
-      <description>最近读了一下 Microsoft 在 2015 年 VLDB 上发表的论文 《Real-Time Analytical Processing with SQL Server》[1]。SQLServer算是业内较早实现并落地 HTAP 行列更新方案的产品，我其实觉得 行存（Row-Wise Index） 在OLTP场景下的各种设计以及取舍，大家都已经讨论的非常清楚了。对于高效率的 毫秒级列存更新 方案，业界有一些方案设计和实现，典型的如Kudu[2]、Positional Delta Tree[3] 等，但远不如行存讨论的多。我仔细的 Review 了一下 SQLServer 的技术方案，觉得他们的设计还是颇具参考意义。本文分享一下我对这篇文章的一些看法。
-论文主要讲了 4 个方面的话题：
-内存中实现列存表； 对于行存表，怎么实现一个列存索引结构，从而实现分析型 SQL 的极大提速。这部分的重点就是怎么实现列存二级索引的实时更新； 对于列存表怎么实现一个 B-Tree 的二级索引，使得这个列存表可以用来做点查和小范围扫描； 计算层在列存表的扫描性能上做了哪些优化。 第1部分纯内存的列存表相对比较简单，第4部分的列存表扫描在业界的很多论文中都可以找到类似的方案。第2部分和第3部分相对比较独特，可以说是整篇文章的精华，也是我比较感兴趣的部分。
-其实第2部分，可以认为是在一个已经存在的OLTP表上，怎么来创建一个OLAP的列存索引，使得这个表可以跑 “TP为主，AP为辅” 的两种QUERY；而第3部分正好完全相反，相当于是在一个纯粹的OLAP列存表之上，创建一个适合做 点查 和 小范围 查询的行存索引，使得这个表可以完成 “AP为主，TP为辅” 的混合QUERY。
-&amp;ldquo;TP为主，AP为辅“ 的索引方案 SQL Server的这种 CSI （Columnar Store Index）更新方案，说实话其实在 写入延迟 和 读取延迟 上处理的还算比较恰当。对于列存索引来说，如果是 INSERT 的话，那么直接 Append 到 Delta Store 里面就行，没啥其他的额外耗时操作；如果是 DELETE 的话，先看一下 DELETE 的 key 是否在 Delta Store 里面，如果在就直接删除即可；如果不在，就插入一条 Delete Marker 到这个由 B-Tree 索引实现的 Delete Buffer。无论是 INSERT 还是 DELETE 操作，都没有特别耗时的地方。可能往 B-Tree 索引实现的 Delete Buffer 里面写 Delete Marker 会有点儿耗时，但这个 Delete Buffer 一般都是最近更新比较热的数据。首先体量不会特别大，其次，大部分的都是热数据，都会被 Cache 到内存。然后，后台有一个任务， 会默默地把 Delete Buffer 里面的 Delete 操作都转换成 Delete Bitmap。</description>
+      <description>&lt;p&gt;最近读了一下 Microsoft 在 2015 年 VLDB 上发表的论文 《Real-Time Analytical Processing with SQL Server》[1]。SQLServer算是业内较早实现并落地 HTAP 行列更新方案的产品，我其实觉得  行存（Row-Wise Index） 在OLTP场景下的各种设计以及取舍，大家都已经讨论的非常清楚了。对于高效率的 &lt;strong&gt;毫秒级列存更新&lt;/strong&gt; 方案，业界有一些方案设计和实现，典型的如Kudu[2]、Positional Delta Tree[3] 等，但远不如行存讨论的多。我仔细的 Review 了一下 SQLServer 的技术方案，觉得他们的设计还是颇具参考意义。本文分享一下我对这篇文章的一些看法。&lt;/p&gt;
+&lt;p&gt;论文主要讲了 4 个方面的话题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;内存中实现列存表；&lt;/li&gt;
+&lt;li&gt;对于行存表，怎么实现一个列存索引结构，从而实现分析型 SQL 的极大提速。这部分的重点就是怎么实现列存二级索引的实时更新；&lt;/li&gt;
+&lt;li&gt;对于列存表怎么实现一个 B-Tree 的二级索引，使得这个列存表可以用来做点查和小范围扫描；&lt;/li&gt;
+&lt;li&gt;计算层在列存表的扫描性能上做了哪些优化。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;第1部分纯内存的列存表相对比较简单，第4部分的列存表扫描在业界的很多论文中都可以找到类似的方案。第2部分和第3部分相对比较独特，可以说是整篇文章的精华，也是我比较感兴趣的部分。&lt;/p&gt;
+&lt;p&gt;其实第2部分，可以认为是在一个已经存在的OLTP表上，怎么来创建一个OLAP的列存索引，使得这个表可以跑 &lt;strong&gt;“TP为主，AP为辅”&lt;/strong&gt; 的两种QUERY；而第3部分正好完全相反，相当于是在一个纯粹的OLAP列存表之上，创建一个适合做 &lt;strong&gt;点查&lt;/strong&gt; 和 &lt;strong&gt;小范围&lt;/strong&gt; 查询的行存索引，使得这个表可以完成 &lt;strong&gt;“AP为主，TP为辅”&lt;/strong&gt; 的混合QUERY。&lt;/p&gt;
+&lt;h3 id=&#34;tp为主ap为辅-的索引方案&#34;&gt;&amp;ldquo;TP为主，AP为辅“ 的索引方案&lt;/h3&gt;
+&lt;p&gt;&lt;img alt=&#34;SQL Server Columnar Secondary Index&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/sql-server-columnar-secondary-index.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;SQL Server的这种 CSI （Columnar Store Index）更新方案，说实话其实在 &lt;strong&gt;写入延迟&lt;/strong&gt; 和 &lt;strong&gt;读取延迟&lt;/strong&gt; 上处理的还算比较恰当。对于列存索引来说，如果是 INSERT 的话，那么直接 Append 到 Delta Store 里面就行，没啥其他的额外耗时操作；如果是 DELETE 的话，先看一下 DELETE 的 key 是否在 Delta Store 里面，如果在就直接删除即可；如果不在，就插入一条 Delete Marker 到这个由 B-Tree 索引实现的 Delete Buffer。无论是 INSERT 还是 DELETE 操作，都没有特别耗时的地方。可能往 B-Tree 索引实现的 Delete Buffer 里面写 Delete Marker 会有点儿耗时，但这个 Delete Buffer 一般都是最近更新比较热的数据。首先体量不会特别大，其次，大部分的都是热数据，都会被 Cache 到内存。然后，后台有一个任务， 会默默地把 Delete Buffer 里面的 Delete 操作都转换成 Delete Bitmap。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Pingcap Hackthon2019</title>
       <link>https://openinx.github.io/posts/2019-10-26-pingcap-hackthon2019/</link>
       <pubDate>Sat, 26 Oct 2019 13:16:43 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-10-26-pingcap-hackthon2019/</guid>
-      <description>最近参加了TiDB的Hackthon2019比赛，一直都想写一篇总结，现在总算有点时间来写一下。
-这是一个围绕 TiDB 分布式数据库展开的一个编程比赛，在 48 小时内完成一个可以展示的 demo，并在 6 分钟内向评委说明项目思路及展示demo。理论上，要求这个demo从实用性、易用性、性能三个方面来优化TiDB（占评分40%），“当然作品的完成度也是一个很重要的考核方向（占30%)，其他就是创新性（占20%）和展示度了（占10%）。
-我们队共有三个同学：队长是来自 PingCAP 美国 office 的吴毅同学，他之前在 facebook 负责 RocksDB 的研发，目前在PingCAP 主要负责 RocksDB 的研发和性能优化，另外一个北京 office 的张博康同学，负责TiKV的研发。由于我们队三个人都是做存储底层的研发，所以就想尝试在今年的 Hackthon 上做一些偏底层的工作。在比赛前，我们大致确认可能会尝试的几个小方向：
-第一个是做一套 TiKV 的分布式 trace，用来跟进一个 TiKV 请求整个生命周期的耗时情况，便于诊断性能。由于这是一个非常普遍的方向，我们预估可能会有不少团队跟我们撞车，另外印象中现在 TiKV 已经实现了部分工作，所以就没有选择这个方向。
-第二个是把一个图查询引擎套在 TiKV 之上，实现一个图数据库。我们初步想好可以用这个图数据库展示社交网络中的三度人脉。在不需要我们开发前端的前提下，可以借助开源的图查询前端来展示 demo，至少演示上不会吃亏。这个其实是一个不错的候选，但不确定工作量有多大，最后也没有选择这个方向。
-第三个是用最新 linux 引入的高性能纯异步实现的 IO 接口 liburing 来重写部分 rocksdb 的实现，期望能给 TiKV 带来更好的性能提升。这个课题看起来跟我们三个成员的背景比较匹配，于是最终我们选择了这个课题。
-我们队吴毅和博康选择在北京 office 比赛，而我离上海比较近，所以就去了上海。为此还申请了异地组队权限（感谢下PingCAP 开放的组委会），我们应该是唯一的三人两地的队伍了。
-我们大致阅读了 liburing 的技术文档，大致确定可以尝试用这套异步 IO 接口重写 RocksDB 的写 WAL 流程和Compaction 流程。另外也调研到 facebook 之前已经尝试过用 io_uring 重写 RocksDB 的 MultiRead 实现，发现随机读的 IOPS 能翻三倍，接口延迟也下降不少，所以我们想用 TiKV 的一个场景来说明可以从中获得性能收益。</description>
+      <description>&lt;p&gt;最近参加了TiDB的&lt;a href=&#34;https://pingcap.com/community-cn/hackathon2019/&#34;&gt;Hackthon2019&lt;/a&gt;比赛，一直都想写一篇总结，现在总算有点时间来写一下。&lt;/p&gt;
+&lt;p&gt;这是一个围绕 TiDB 分布式数据库展开的一个编程比赛，在 48 小时内完成一个可以展示的 demo，并在 6 分钟内向评委说明项目思路及展示demo。理论上，要求这个demo从实用性、易用性、性能三个方面来优化TiDB（占评分40%），“当然作品的完成度也是一个很重要的考核方向（占30%)，其他就是创新性（占20%）和展示度了（占10%）。&lt;/p&gt;
+&lt;p&gt;我们队共有三个同学：队长是来自 PingCAP 美国 office 的吴毅同学，他之前在 facebook 负责 RocksDB 的研发，目前在PingCAP 主要负责 RocksDB 的研发和性能优化，另外一个北京 office 的张博康同学，负责TiKV的研发。由于我们队三个人都是做存储底层的研发，所以就想尝试在今年的 Hackthon 上做一些偏底层的工作。在比赛前，我们大致确认可能会尝试的几个小方向：&lt;/p&gt;
+&lt;p&gt;第一个是做一套 TiKV 的分布式 trace，用来跟进一个 TiKV 请求整个生命周期的耗时情况，便于诊断性能。由于这是一个非常普遍的方向，我们预估可能会有不少团队跟我们撞车，另外印象中现在 TiKV 已经实现了部分工作，所以就没有选择这个方向。&lt;/p&gt;
+&lt;p&gt;第二个是把一个图查询引擎套在 TiKV 之上，实现一个图数据库。我们初步想好可以用这个图数据库展示社交网络中的三度人脉。在不需要我们开发前端的前提下，可以借助开源的图查询前端来展示 demo，至少演示上不会吃亏。这个其实是一个不错的候选，但不确定工作量有多大，最后也没有选择这个方向。&lt;/p&gt;
+&lt;p&gt;第三个是用最新 linux 引入的高性能纯异步实现的 IO 接口 liburing 来重写部分 rocksdb 的实现，期望能给 TiKV 带来更好的性能提升。这个课题看起来跟我们三个成员的背景比较匹配，于是最终我们选择了这个课题。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;TiDB Hackton2019 iouring&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/tidb-hackthon2019-iouring.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;我们队吴毅和博康选择在北京 office 比赛，而我离上海比较近，所以就去了上海。为此还申请了异地组队权限（感谢下PingCAP 开放的组委会），我们应该是唯一的三人两地的队伍了。&lt;/p&gt;
+&lt;p&gt;我们大致阅读了 liburing 的技术文档，大致确定可以尝试用这套异步 IO 接口重写 RocksDB 的写 WAL 流程和Compaction 流程。另外也调研到 facebook 之前已经尝试过用 io_uring 重写 RocksDB 的 MultiRead 实现，发现随机读的 IOPS 能翻三倍，接口延迟也下降不少，所以我们想用 TiKV 的一个场景来说明可以从中获得性能收益。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>一场HBase2.x的写入性能优化之旅</title>
       <link>https://openinx.github.io/posts/2019-09-10-tuning-the-hbase-2-write-performance/</link>
       <pubDate>Tue, 10 Sep 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-09-10-tuning-the-hbase-2-write-performance/</guid>
-      <description>HBase2.x的写入性能到底怎么样？来，不服跑个分！
-首先，简单介绍一下我们的测试环境：集群由5个节点组成，每个节点有12块800GB的SSD盘、24核CPU、128GB内存；集群采用HBase和HDFS混布方式，也就是同一个节点既部署RegionServer进程，又部署DataNode进程，这样其实可以保证更好的写入性能，毕竟至少写一副本在本地。关于软件版本，我们使用的HBase2.1.2版本以及HDFS 2.6.0版本，Java使用OpenJDK1.8.0_202。
-对每一个RegionServer进程，我们正常的线上配置是50GB堆内内存和50GB堆外内存（RS合计占用100GB内存），其中堆内内存主要用于Memstore（~36GB），堆外内存主要用于BucketCache（~36GB）。这里，我们为了保证尽量跟线上配置一样，虽然现在是100%写入的测试场景，我们还是保留了50GB的堆外内存给BucketCache。
-在搭建好集群后，我们提前用YCSB压入了100亿行数据，每行数据占用100字节。注意，压入数据时，采用BufferMutator的方式批量写入，单机吞吐可以达到令人恐怖的20万QPS，所以这个过程是非常快的。
-正常写入性能结果
-接着我们开始测试正常的单行Put（设置autoflush=true）延迟了。我们在100亿行数据集规模的基础上，用YCSB持续写入数据到HBase集群，将YCSB的性能数据制作成如下监控图：
-首先，我们可以看到5个节点的总QPS在10w/s左右，单机QPS在2w+/s左右，avgLatency&amp;lt;4ms，P99-Latency&amp;lt;20ms。从基本面上看，这个数据还是很不错的。 但是，图中我们也能发现一些非常明显的问题：
-1.QPS曲线呈现出明显的高峰和低谷，而且高峰和低谷是周期性出现的，大概15min出现一次高峰，对应的平均延迟(avg-Latency)也出现相应的周期性。这种不稳定的吞吐和延迟表现，对业务是非常不友好的，因为在低谷时期业务的QPS将受到极大的限制。
-2.有时会出现大量P999为150ms的请求，P999曲线毛刺非常突出，而且毛刺点比平均的P999延迟要高100ms，这是一个非常令人困惑的数据。
-3.P9999延迟出现部分超过1s的毛刺点。
-优化毛刺
-我们来分析上述几个问题的原因。首先，我们找了几个QPS低谷的时间点，去RegionServer的日志中看了下，确认低谷时间点基本上是 Memstore做Flush的时间点 。另外，确认P999毛刺时间点也是Flush的时间点。由此，推断出可能的几个原因有：
-1.在测试集群中，每个节点的Region数以及各Region数据写入量都非常均衡。这样可能造成的一个问题就是，某一个时间点所有的Region几乎同时进入Flush状态，造成短期内磁盘有巨大的写入压力，最终吞吐下降，延迟上升。
-2.MemStore Flush的过程，分成两步：第一步加写锁，将Memstore切换成snapshot状态，释放写锁；第二步，将snapshot数据异步的刷新成HFile文件。其中第一步持有写锁的过程中，是会阻塞当前写入的，第二步已经释放了写锁，所以刷新相当于是异步的，不会阻塞当前的写入请求。如果在第一步持有写锁过程中，有任何耗时操作，都会造成延迟飙升。
-第一个问题在真实的线上集群其实不太可能发生，因为线上不可能做到绝对均衡，Flush必然是错峰出现。另外，即使绝对均衡，也可以采用限流的方式来控制Flush的写入速率，进而控制延迟。这个问题我们暂时可以放一放。
-第二个问题，我们尝试加了点日志，打印出每次Flush时RegionServer持有写锁的时长。发现一些如下日志： “&amp;ndash;&amp;gt; Memstore snapshotting cost: 146ms”
-这说明在Memstore snapshot过程中，确实有一些长耗时的操作。在进一步核对代码之后，我们发现一个如下存在问题的栈：
-换句话说，在Memstore Snapshot中调用了一次ConcurrentSkipListMap#size()接口，而这个接口的时间复杂度是O(N)的。也就是说，如果有256MB的Memstore，那么这个size()接口会逐个扫描Memstore中的KV，最终统计得出Map中元素个数。ConcurrentSkipListMap为什么要这么实现呢？因为ConcurrentSkipListMap为了保证更好的写入并发性，不会在更新删除Map时维护一个线程安全的size变量，所以只能实时的统计Map元素个数。
-这是一个潜藏在HBase代码仓库中很长时间的一个bug，从0.98一直到现在的2.0，甚至3.0，都没有用户发现这个bug。更多详情可以参考HBASE-21738。
-其实，找到了问题之后，修改起来也就很简单，只需要把这个耗时的size()操作去掉，或者用其他的方式来替换即可。 我们已经在各分支最新版本中修复了这个bug，建议对性能有更高追求的用户升级。当然，对此我们也做了进一步的性能测试：
-从图中看出，至少我们把P999的延迟控制在了100ms以内，另外，我们也可以很容易发现P9999的毛刺也从之前的1000ms下降到200ms~500ms左右。这说明，上述fix对解决毛刺问题还是很有效果的。
-采用In-Memory Compaction进一步优化毛刺
-但事实上，就目前的情况来说，我们仍然觉得P999~100ms不够好，其实大部分的P999是小于40ms的，但由于毛刺的问题，还是把P999拉到了100ms。进一步分析日志之后，我们发现此时G1 GC的STW是影响P999最大的因素，因为毛刺点都是GC STW的时间点，而且STW的耗时正好是100ms左右。
-于是，我们考虑采用社区HBase 2.0引入的In-memory compaction功能来优化集群的写性能。这个功能的本质优势在于，把256MB的Memstore划分成多个2MB大小的小有序集合，这些集合中有一个是Mutable的集合，其他的都是Immutable的集合。每次写入都先写Mutable的集合，等Mutable集合占用字节超过2MB之后，就把它切换成Immutable的集合，再新开一个Mutable集合供写入。Immutable的集合由于其不可变性，可以直接用有序数组替换掉ConcurrentSkipListMap，节省大量heap消耗，进一步控制GC延迟。甚至更进一步，我们可以把MSLAB的内存池分配到offheap内。从此，整个Memstore几乎没有堆内的内存占用。理论上，这个feature的性能表现将非常强劲，我们做个测试来验证一下。
-测试环境跟之前一样，不同的是我们会将Memstore配置为CompactingMemstore。注意，目前我们的MSLAB仍然是放在heap上的（若想把MSLAB为offheap，需要设置hbase.regionserver.offheap.global.memstore.size=36864，相当于把36GB的堆外内存给MSLAB）。
-RegionServer的核心配置如下：
-hbase.hregion.memstore.block.multiplier=5 hbase.hregion.memstore.flush.size=268435456 hbase.regionserver.global.memstore.size=0.4 hbase.regionserver.global.memstore.size.lower.limit=0.625 hbase.hregion.compacting.memstore.type=BASIC 最终，我们得到的In-memory compaction测试结果如下：
-从图中可以非常明显的看出，P999延迟控制在令人惊讶的50ms以内，同时P9999控制在100ms左右，远低于之前的200ms~500ms。与此同时，吞吐跟平均延迟几乎没有任何损耗。如果使用堆外的CompactingMemstore，理论上毛刺会控制的更加严格，但有可能稍微拉升平均延迟。这里我没有再提供进一步的详细测试结果，感兴趣的朋友可以尝试一下。
-总结
-社区HBase2.1.2版本的写入延迟和吞吐表现都非常出色，但是某些场景下容易出现较高的毛刺。经过HBASE-21738优化之后，我们已经能很好地把P999延迟控制在100ms左右。这中间大部分时间点的P999&amp;lt;40ms，少数时间点因为GC STW拉高了P999的表现。接着，我们采用堆内的In-Memory Compaction优化之后，P999已经能控制在满意的50ms以内，甚至P9999可以控制在100ms以内。从这些点上来说，HBase2.1.3和HBase2.2.0版本已经是性能非常强悍的版本。</description>
+      <description>&lt;p&gt;HBase2.x的写入性能到底怎么样？来，不服跑个分！&lt;/p&gt;
+&lt;p&gt;首先，简单介绍一下我们的测试环境：集群由5个节点组成，每个节点有12块800GB的SSD盘、24核CPU、128GB内存；集群采用HBase和HDFS混布方式，也就是同一个节点既部署RegionServer进程，又部署DataNode进程，这样其实可以保证更好的写入性能，毕竟至少写一副本在本地。关于软件版本，我们使用的HBase2.1.2版本以及HDFS 2.6.0版本，Java使用OpenJDK1.8.0_202。&lt;/p&gt;
+&lt;p&gt;对每一个RegionServer进程，我们正常的线上配置是50GB堆内内存和50GB堆外内存（RS合计占用100GB内存），其中堆内内存主要用于Memstore（~36GB），堆外内存主要用于BucketCache（~36GB）。这里，我们为了保证尽量跟线上配置一样，虽然现在是100%写入的测试场景，我们还是保留了50GB的堆外内存给BucketCache。&lt;/p&gt;
+&lt;p&gt;在搭建好集群后，我们提前用YCSB压入了100亿行数据，每行数据占用100字节。注意，压入数据时，采用BufferMutator的方式批量写入，单机吞吐可以达到令人恐怖的20万QPS，所以这个过程是非常快的。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;正常写入性能结果&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;接着我们开始测试正常的单行Put（设置autoflush=true）延迟了。我们在100亿行数据集规模的基础上，用YCSB持续写入数据到HBase集群，将YCSB的性能数据制作成如下监控图：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-before.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;首先，我们可以看到5个节点的总QPS在10w/s左右，单机QPS在2w+/s左右，avgLatency&amp;lt;4ms，P99-Latency&amp;lt;20ms。从基本面上看，这个数据还是很不错的。
+但是，图中我们也能发现一些非常明显的问题：&lt;br&gt;
+1.QPS曲线呈现出明显的高峰和低谷，而且高峰和低谷是周期性出现的，大概15min出现一次高峰，对应的平均延迟(avg-Latency)也出现相应的周期性。这种不稳定的吞吐和延迟表现，对业务是非常不友好的，因为在低谷时期业务的QPS将受到极大的限制。&lt;br&gt;
+2.有时会出现大量P999为150ms的请求，P999曲线毛刺非常突出，而且毛刺点比平均的P999延迟要高100ms，这是一个非常令人困惑的数据。&lt;br&gt;
+3.P9999延迟出现部分超过1s的毛刺点。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;优化毛刺&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;我们来分析上述几个问题的原因。首先，我们找了几个QPS低谷的时间点，去RegionServer的日志中看了下，确认低谷时间点基本上是 &lt;strong&gt;Memstore做Flush的时间点&lt;/strong&gt; 。另外，确认P999毛刺时间点也是Flush的时间点。由此，推断出可能的几个原因有：&lt;br&gt;
+1.在测试集群中，每个节点的Region数以及各Region数据写入量都非常均衡。这样可能造成的一个问题就是，某一个时间点所有的Region几乎同时进入Flush状态，造成短期内磁盘有巨大的写入压力，最终吞吐下降，延迟上升。&lt;br&gt;
+2.MemStore Flush的过程，分成两步：第一步加写锁，将Memstore切换成snapshot状态，释放写锁；第二步，将snapshot数据异步的刷新成HFile文件。其中第一步持有写锁的过程中，是会阻塞当前写入的，第二步已经释放了写锁，所以刷新相当于是异步的，不会阻塞当前的写入请求。&lt;strong&gt;如果在第一步持有写锁过程中，有任何耗时操作，都会造成延迟飙升&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;第一个问题在真实的线上集群其实不太可能发生，因为线上不可能做到绝对均衡，Flush必然是错峰出现。另外，即使绝对均衡，也可以采用限流的方式来控制Flush的写入速率，进而控制延迟。这个问题我们暂时可以放一放。&lt;/p&gt;
+&lt;p&gt;第二个问题，我们尝试加了点日志，打印出每次Flush时RegionServer持有写锁的时长。发现一些如下日志：
+“&amp;ndash;&amp;gt; Memstore snapshotting cost: 146ms”&lt;/p&gt;
+&lt;p&gt;这说明在Memstore snapshot过程中，确实有一些长耗时的操作。在进一步核对代码之后，我们发现一个如下存在问题的栈：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-size-bug.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;换句话说，在Memstore Snapshot中调用了一次ConcurrentSkipListMap#size()接口，而这个接口的时间复杂度是O(N)的。也就是说，如果有256MB的Memstore，那么这个size()接口会逐个扫描Memstore中的KV，最终统计得出Map中元素个数。ConcurrentSkipListMap为什么要这么实现呢？因为ConcurrentSkipListMap为了保证更好的写入并发性，不会在更新删除Map时维护一个线程安全的size变量，所以只能实时的统计Map元素个数。&lt;/p&gt;
+&lt;p&gt;这是一个潜藏在HBase代码仓库中很长时间的一个bug，从0.98一直到现在的2.0，甚至3.0，都没有用户发现这个bug。更多详情可以参考&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21738&#34;&gt;HBASE-21738&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;其实，找到了问题之后，修改起来也就很简单，只需要把这个耗时的size()操作去掉，或者用其他的方式来替换即可。 我们已经在各分支最新版本中修复了这个bug，建议对性能有更高追求的用户升级。当然，对此我们也做了进一步的性能测试：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-after.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;从图中看出，至少我们把P999的延迟控制在了100ms以内，另外，我们也可以很容易发现P9999的毛刺也从之前的1000ms下降到200ms~500ms左右。这说明，上述fix对解决毛刺问题还是很有效果的。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;采用In-Memory Compaction进一步优化毛刺&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;但事实上，就目前的情况来说，我们仍然觉得P999~100ms不够好，其实大部分的P999是小于40ms的，但由于毛刺的问题，还是把P999拉到了100ms。进一步分析日志之后，我们发现此时G1 GC的STW是影响P999最大的因素，因为毛刺点都是GC STW的时间点，而且STW的耗时正好是100ms左右。&lt;/p&gt;
+&lt;p&gt;于是，我们考虑采用社区HBase 2.0引入的In-memory compaction功能来优化集群的写性能。这个功能的本质优势在于，把256MB的Memstore划分成多个2MB大小的小有序集合，这些集合中有一个是Mutable的集合，其他的都是Immutable的集合。每次写入都先写Mutable的集合，等Mutable集合占用字节超过2MB之后，就把它切换成Immutable的集合，再新开一个Mutable集合供写入。Immutable的集合由于其不可变性，可以直接用有序数组替换掉ConcurrentSkipListMap，节省大量heap消耗，进一步控制GC延迟。甚至更进一步，我们可以把MSLAB的内存池分配到offheap内。从此，整个Memstore几乎没有堆内的内存占用。理论上，这个feature的性能表现将非常强劲，我们做个测试来验证一下。&lt;/p&gt;
+&lt;p&gt;测试环境跟之前一样，不同的是我们会将Memstore配置为CompactingMemstore。注意，目前我们的MSLAB仍然是放在heap上的（若想把MSLAB为offheap，需要设置hbase.regionserver.offheap.global.memstore.size=36864，相当于把36GB的堆外内存给MSLAB）。&lt;/p&gt;
+&lt;p&gt;RegionServer的核心配置如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-ini&#34; data-lang=&#34;ini&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.hregion.memstore.block.multiplier&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;5&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.hregion.memstore.flush.size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;268435456&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.regionserver.global.memstore.size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;0.4&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.regionserver.global.memstore.size.lower.limit&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;0.625&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.hregion.compacting.memstore.type&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;BASIC&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;最终，我们得到的In-memory compaction测试结果如下：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-IMC.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;从图中可以非常明显的看出，P999延迟控制在令人惊讶的50ms以内，同时P9999控制在100ms左右，远低于之前的200ms~500ms。与此同时，吞吐跟平均延迟几乎没有任何损耗。如果使用堆外的CompactingMemstore，理论上毛刺会控制的更加严格，但有可能稍微拉升平均延迟。这里我没有再提供进一步的详细测试结果，感兴趣的朋友可以尝试一下。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;总结&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;社区HBase2.1.2版本的写入延迟和吞吐表现都非常出色，但是某些场景下容易出现较高的毛刺。经过HBASE-21738优化之后，我们已经能很好地把P999延迟控制在100ms左右。这中间大部分时间点的P999&amp;lt;40ms，少数时间点因为GC STW拉高了P999的表现。接着，我们采用堆内的In-Memory Compaction优化之后，P999已经能控制在满意的50ms以内，甚至P9999可以控制在100ms以内。从这些点上来说，HBase2.1.3和HBase2.2.0版本已经是性能非常强悍的版本。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>推荐一本我们写的书《HBase原理与实践》</title>
       <link>https://openinx.github.io/posts/2019-09-06-hbase-princple-and-practice/</link>
       <pubDate>Fri, 06 Sep 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-09-06-hbase-princple-and-practice/</guid>
-      <description>我在 Apache HBase 社区工作了一段时间后，发现有一些精力过人的大咖：十年如一日持续不断贡献的Michael Stack、最近晋升为HBase项目主席的张铎。先说说Stack，一个60后的资深工程师，按辈分我应该叫声大伯，这位大伯精力过人到什么程度呢？我早上打开邮件发现Stack刚回复一个JIRA，到了下午14点打开邮件又发现Stack刚提了个patch；晚上23:30打开邮件居然发现Stack又评论了一下别人刚提交的patch。大伯工作的时间居然能覆盖我整天的工作时间。再说说张铎，就是那个雷军曾在文章中叫过一声铎神的男人，他坐我右手边，我比较了解：白天大部分时间都在各种开会，到了下班不开会了就开始在社区各种写代码了。另外，几乎每个周末都有几个JIRA被他从Create到Resolved吧。
-我挺好奇，为啥社区的大佬们都能如此全情投入？不久前看到一个“增强回路”的词，我才有了一点自己的理解。简单来说，就是A刚开始做了一件事情后，收到了一些正面的反馈（有可能是偶然的），然后激发A用更大的热情去做这件事，后面又收到更加强烈的正面反馈，于是A能以更大更持续的热情去做这件事情。我觉得Stack大伯和铎神，应该是走在各自的“增强回路”上的，所以他们才有这么大的热情投入社区。
-其实HBase开源社区同样需要一个“增强回路”。首先，有一个非常活跃的研发团队持续不断的优化和改进HBase；然后，用户根据需求找到一些竞品，在各种权衡之后，发现当前的最优解是HBase，选定HBase作为他们的基础依赖；后来，体验很好的用户会向更多人自发推荐HBase，部分用户会发现一些HBase问题和Bug，少数用户着手参与社区解决问题；最终，社区吸引了更多的人参与这个项目，包括推广、答疑、分享、改进、优化HBase。
-目前HBase社区是非常活跃的，在2018年度评估中，HBase活跃度在整个Apache项目中排行第二。用户的基数也很大，尤其是国内，HBaseConAsia2019大会吸引了2万用户观看现场直播。但HBase不同于其他开源项目的是：背后并没有一家占据压倒性的商业公司来全权负责项目推广和分享。对用户来说，官方文档和技术博客是一个很好的学习渠道，但当很多人问到希望推荐一本讲HBase原理的书时，我们全都有点不知所措了。所以，我和范欣欣决定写一本结合HBase实践讲原理的书，于是就有了这本《HBase原理与实践》。
-说实话，对于工程师来说，写作一本书比写代码投入的精力要多很多，毕竟是从一个轨道切换到另外一个轨道：代码是精确计算的，文字是模糊表达的。为了做到深入浅出，我们不得不做很多铺垫、提炼、推理、提醒、揭示、总结，以便读者们能顺着我们的思路来理解。尽量把一个严谨的工程项目掰开、揉碎、拼接、组织，最终把一个好故事讲的符合逻辑，还能圆满大结局。这真是把我和范欣欣累坏了。
-这里，跟大家分享一下本书的一些数据：
-1.为了做到从设计角度（而不是源码角度）讲清楚HBase的运行原理，我们在320页的书中，设计了200多幅插图，堪称图解HBase；
-2.为了把这本书的故事讲圆、讲通，我、范欣欣以及本书编辑吴怡老师每人通读了不下20遍；
-3.为了帮助读者真正理解HBase，我们设计了近50道的思考练习题（包括编程题和设计题）。这是和市面上同类型书籍区别最大的地方，因为我们认为：对读者来说，懂HBase并不是看了多少文档，读了多少行代码，而是解决了多少问题。解决问题的速度和难度是深入理解与否的唯一评判标准。
-总的来说，我认为这是一本把HBase原理和实践讲通透了的硬核技术书，但绝对不会是一本让你读起来很轻松的技术书。
-下面就是本书的封面和封底的设计了，希望大家喜欢。
-当然，我们也非常荣幸地邀请到很多在业界有影响力的前辈为本书写推荐语。
-关于本书上市
-本书将在2019年9月13日左右在各大电商网站上销售，原价129元。今天到上市日这段时间，是本书的预售阶段，扫描下图二维码下单，只需99元即可获得如下三件套：纸质实体书+电子书+鲜读版作者原稿。过了预售阶段，原价129元只能买到实体书，电子书需要另外单独购买。所以，预售阶段购买是最划算的。我们觉得有责任和义务告知读者这件事情，这也是我们写这篇文章的目的之一吧。
-当然，目前当当网和京东网也已经开放预售链接，有兴趣的朋友可以关注下。
-当当网预售链接：
-京东网预售链接
-本书作者简介
-胡争 小米公司HBase工程师，Apache HBase PMC成员，负责Apache HBase项目研发及小米HBase集群维护，对HBase及相关分布式存储系统有很多独到的见解。开源技术爱好者，长期活跃在Apache开源社区，热衷技术分享，博客地址: http://openinx.github.io。
-范欣欣 现就职于网易杭州研究院数据科学中心，负责HBase以及分布式时序数据库的内核开发运维工作，对HBase的底层工作原理进行长时间的探索和深入研究，撰写了大量有关HBase和时序数据库相关的技术文章，深受读者好评。此外，对大数据生态以及数据仓库有深刻而独到的理解。博客地址: http://hbasefly.com。
-利益相关声明
-首先，关于定价部分，我和范欣欣作为作者是没有太多话语权的。抛开定价，无论是本书内容还是排版质量，都应该是很棒的。注意，本书并不是传统的黑色印刷，而是双色印刷，即采用黑色和蓝色两种颜色印刷，使得读者的阅读体验更佳。
-其次，销售额10%左右作为版税由两位作者平分，相信写过技术书的朋友都知道，2万册销量的技术书已经属于畅销书。受限于HBase的用户总基数，这个版税收入对我们接近两年的业余投入来说，几乎没有任何吸引力，但我们还是去做了这件事，因为我们觉得这将是让用户和HBase社区走向更好“增强回路”的一件事情。
-最后，这是一本献给Apache HBase技术社区的书。感谢那些年复一年、日复一日不断贡献和反馈的PMC成员、Committer、Contributor以及庞大的用户群体，你们都是这个项目背后可歌可泣的英雄。</description>
+      <description>&lt;p&gt;我在 Apache HBase 社区工作了一段时间后，发现有一些精力过人的大咖：十年如一日持续不断贡献的Michael Stack、最近晋升为HBase项目主席的张铎。先说说Stack，一个60后的资深工程师，按辈分我应该叫声大伯，这位大伯精力过人到什么程度呢？我早上打开邮件发现Stack刚回复一个JIRA，到了下午14点打开邮件又发现Stack刚提了个patch；晚上23:30打开邮件居然发现Stack又评论了一下别人刚提交的patch。大伯工作的时间居然能覆盖我整天的工作时间。再说说张铎，就是那个雷军曾在文章中叫过一声铎神的男人，他坐我右手边，我比较了解：白天大部分时间都在各种开会，到了下班不开会了就开始在社区各种写代码了。另外，几乎每个周末都有几个JIRA被他从Create到Resolved吧。&lt;/p&gt;
+&lt;p&gt;我挺好奇，为啥社区的大佬们都能如此全情投入？不久前看到一个“增强回路”的词，我才有了一点自己的理解。简单来说，就是A刚开始做了一件事情后，收到了一些正面的反馈（有可能是偶然的），然后激发A用更大的热情去做这件事，后面又收到更加强烈的正面反馈，于是A能以更大更持续的热情去做这件事情。我觉得Stack大伯和铎神，应该是走在各自的“增强回路”上的，所以他们才有这么大的热情投入社区。&lt;/p&gt;
+&lt;p&gt;其实HBase开源社区同样需要一个“增强回路”。首先，有一个非常活跃的研发团队持续不断的优化和改进HBase；然后，用户根据需求找到一些竞品，在各种权衡之后，发现当前的最优解是HBase，选定HBase作为他们的基础依赖；后来，体验很好的用户会向更多人自发推荐HBase，部分用户会发现一些HBase问题和Bug，少数用户着手参与社区解决问题；最终，社区吸引了更多的人参与这个项目，包括推广、答疑、分享、改进、优化HBase。&lt;/p&gt;
+&lt;p&gt;目前HBase社区是非常活跃的，在2018年度评估中，HBase活跃度在整个Apache项目中排行第二。用户的基数也很大，尤其是国内，HBaseConAsia2019大会吸引了2万用户观看现场直播。但HBase不同于其他开源项目的是：背后并没有一家占据压倒性的商业公司来全权负责项目推广和分享。对用户来说，官方文档和技术博客是一个很好的学习渠道，但当很多人问到希望推荐一本讲HBase原理的书时，我们全都有点不知所措了。所以，我和范欣欣决定写一本结合HBase实践讲原理的书，于是就有了这本《HBase原理与实践》。&lt;/p&gt;
+&lt;p&gt;说实话，对于工程师来说，写作一本书比写代码投入的精力要多很多，毕竟是从一个轨道切换到另外一个轨道：代码是精确计算的，文字是模糊表达的。为了做到深入浅出，我们不得不做很多铺垫、提炼、推理、提醒、揭示、总结，以便读者们能顺着我们的思路来理解。尽量把一个严谨的工程项目掰开、揉碎、拼接、组织，最终把一个好故事讲的符合逻辑，还能圆满大结局。这真是把我和范欣欣累坏了。&lt;/p&gt;
+&lt;p&gt;这里，跟大家分享一下本书的一些数据：&lt;/p&gt;
+&lt;p&gt;1.为了做到从设计角度（而不是源码角度）讲清楚HBase的运行原理，我们在320页的书中，设计了200多幅插图，堪称图解HBase；&lt;/p&gt;
+&lt;p&gt;2.为了把这本书的故事讲圆、讲通，我、范欣欣以及本书编辑吴怡老师每人通读了不下20遍；&lt;/p&gt;
+&lt;p&gt;3.为了帮助读者真正理解HBase，我们设计了近50道的思考练习题（包括编程题和设计题）。这是和市面上同类型书籍区别最大的地方，因为我们认为：对读者来说，懂HBase并不是看了多少文档，读了多少行代码，而是解决了多少问题。&lt;strong&gt;解决问题的速度和难度是深入理解与否的唯一评判标准&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;总的来说，我认为这是一本把HBase原理和实践讲通透了的硬核技术书，但绝对不会是一本让你读起来很轻松的技术书。&lt;/p&gt;
+&lt;p&gt;下面就是本书的封面和封底的设计了，希望大家喜欢。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-book-first-page.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;当然，我们也非常荣幸地邀请到很多在业界有影响力的前辈为本书写推荐语。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-book-last-page.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;关于本书上市&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;本书将在2019年9月13日左右在各大电商网站上销售，原价129元。今天到上市日这段时间，是本书的预售阶段，扫描下图二维码下单，只需99元即可获得如下三件套：纸质实体书+电子书+鲜读版作者原稿。过了预售阶段，原价129元只能买到实体书，电子书需要另外单独购买。所以，预售阶段购买是最划算的。我们觉得有责任和义务告知读者这件事情，这也是我们写这篇文章的目的之一吧。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-book-pre-sales.jpeg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;当然，目前当当网和京东网也已经开放预售链接，有兴趣的朋友可以关注下。&lt;/p&gt;
+&lt;p&gt;当当网预售&lt;a href=&#34;http://product.dangdang.com/27930978.html&#34;&gt;链接&lt;/a&gt;：&lt;/p&gt;
+&lt;p&gt;京东网预售&lt;a href=&#34;https://item.jd.com/12701428.html&#34;&gt;链接&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;本书作者简介&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;胡争  小米公司HBase工程师，Apache HBase PMC成员，负责Apache HBase项目研发及小米HBase集群维护，对HBase及相关分布式存储系统有很多独到的见解。开源技术爱好者，长期活跃在Apache开源社区，热衷技术分享，博客地址: &lt;a href=&#34;http://openinx.github.io&#34;&gt;http://openinx.github.io&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;范欣欣  现就职于网易杭州研究院数据科学中心，负责HBase以及分布式时序数据库的内核开发运维工作，对HBase的底层工作原理进行长时间的探索和深入研究，撰写了大量有关HBase和时序数据库相关的技术文章，深受读者好评。此外，对大数据生态以及数据仓库有深刻而独到的理解。博客地址: &lt;a href=&#34;http://hbasefly.com&#34;&gt;http://hbasefly.com&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;利益相关声明&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;首先，关于定价部分，我和范欣欣作为作者是没有太多话语权的。抛开定价，无论是本书内容还是排版质量，都应该是很棒的。注意，本书并不是传统的黑色印刷，而是双色印刷，即采用黑色和蓝色两种颜色印刷，使得读者的阅读体验更佳。&lt;/p&gt;
+&lt;p&gt;其次，销售额10%左右作为版税由两位作者平分，相信写过技术书的朋友都知道，2万册销量的技术书已经属于畅销书。受限于HBase的用户总基数，这个版税收入对我们接近两年的业余投入来说，几乎没有任何吸引力，但我们还是去做了这件事，因为我们觉得这将是让用户和HBase社区走向更好“增强回路”的一件事情。&lt;/p&gt;
+&lt;p&gt;最后，这是一本献给Apache HBase技术社区的书。感谢那些年复一年、日复一日不断贡献和反馈的PMC成员、Committer、Contributor以及庞大的用户群体，你们都是这个项目背后可歌可泣的英雄。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>社区HBase未来值得做的一些工作</title>
       <link>https://openinx.github.io/posts/2019-07-15-future-work-for-hbase2.x/</link>
       <pubDate>Fri, 06 Sep 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-07-15-future-work-for-hbase2.x/</guid>
-      <description>HBase2.0.0版本自2018年4月30日正式发布起， 到现在已经过了接近15个月。现在的状态是HBase2.0.x已经EOL了，后面不会再发新的Release版本了，HBase2.1已经发布到HBase2.1.6了，个人预计将来也不会维护太长的时间。今后的HBase2.x的稳定版本将会是HBase2.2.x和HBase2.3.x，尤其是HBase2.2.x，可能成为未来真正意义上经过大厂线上严苛考验的版本。
-这里，我总结一下未来HBase2.x上需要投入精力去做的一些事情：
-1.ProcedureV2和AssignmentV2的引入，能通过框架的方式保证分布式任务流的原子性。这在HBase1.x上曾经是一个非常令人困惑的麻烦。举个简单的例子，在建表流程中，会分成几步：a. 在zk上加个znode；b. 在文件系统上新增表的目录；c. 生成Assign的任务，并分发到具体的RegionServer，让其执行online region的操作。在HBase1.x中任何一步异常了，都可能造成各状态不一致的问题发生，极端情况下可能需要通过类似HBCK这样的工具来进行修复。但在HBase2.x中，已经通过框架来解决了这个问题。需要人操行的地方少了，那代码需要操心的地方就很多了，由于各个任务流都采用Procedure V2进行重写，中间难免会一些bug，所以，后续将这块功能变得更加稳定，是一个优先级非常高的工作。
-2.HBCK2支持修复更多的场景。虽说采用ProcedureV2之后，各Region状态不一致的概率大大降低了，但仍然难保可能会存在代码bug，导致有问题。目前的HBCK2主要支持修复Region Assign／UnAssign这样的问题，对于类似Region重叠和空洞这样的问题，期望HBCK2也能得到支持。这样即使集群出问题了，也有合适的工具能辅助修复。
-3.In-Memory Compaction功能。可以说这是一个性能优化进步很大的功能，在我们大数据集(100亿行数据)的测试情况下，写入操作的P999延迟可以严格控制在令人惊讶的50ms以内，而且延迟非常稳定。但是社区考虑到其功能的稳定性，暂时没有把它设为默认的Memstore，也就是说默认的Mmestore仍然是延迟控制较差的ConcurrentSkipListMap实现的DefaultMemstore。在我们的测试环境，确实也发现了一些很难定位的BUG，例如HBASE-22608。因此，将这个功能弄的更稳定也是优先级特别高的一个事情。
-4.MOB这个功能很好，可以通过同一个API处理各个Value大小的Cell，而且原子语义等跟正常的Cell完全一致。但当前的方案仍然有一些缺陷，例如MOB的大Value compaction现在是由Master端来负责跑的，这种Compaction的数据量会是一个巨大的量，单点来做会非常耗时，毕竟单机网卡流量和CPU资源都非常有限。理想的方案是分担到各个RegionServer去做，但目前还没有实现，这也就是一个必须要做的工作。
-5.在读写路径上引入Offheap后，有时候目前会碰到一些字节错乱的bug。这种bug只在特定条件下才触发，不易复现极大地增加了定位问题的难度，而且预计未来可能会碰到一些Memory Leak的问题，毕竟自己管理内存之后，就有这种可能。所以，这块也需要考虑。
-6.在HBase2.x中，除了Flush和Snapshot两个流程之外，其他的管理流程全部都Procedure-V2化。所以将Flush和Snapshot搞成Procedure-V2的写法，也是一个非常必要的工作。毕竟现在既有ProcedureV1的写法，又有Procedure-V2的写法，让代码显得较为冗余，搞定了Flush和Snapshot之后，ProcedureV1的框架就可以完全清除掉了。
-7.Replicaiton现在仍然是走ZK的，开启串行复制之后，每个Region都会在ZK上维护一个znode。这在大集群上可能会对ZK造成很大的压力。所以Replication从存ZK改成存Meta，也会是一个很必要的工作。之前我尝试去做这方面的研发，后面发现一个比较重要的问题，就是启动时Master和RegionServer死锁的问题，要解决这个问题可能需要对Master启动流程做一些调整，会有一些额外的工作。当时有其他优先级更高的事情，就干其他事情去了，从长远来看，改成走Meta是必须的。
-8.CCSMap是阿里巴巴研发的内存压缩型ConcurrentSkipListMap，对写路径上的GC非常友好。目前社区还没有人力投入到Merge到master分支的工作上，未来期望是把它做成一个可插拔的组件，甚至是一个单独的依赖。可以随时替换掉JDK内置的ConcurrentSkipListMap，而且适用于除HBase之外的其他项目。
-9.多级BlockCache，L1存Index/DataBlock、L2是基于offheap的BucketCache、L3是基于SSD的BucketCache。这样可以优化掉HDFS的协议栈，同时解决掉locality的问题。读性能能得到很好的优化。</description>
+      <description>&lt;p&gt;HBase2.0.0版本自2018年4月30日正式发布起， 到现在已经过了接近15个月。现在的状态是HBase2.0.x已经EOL了，后面不会再发新的Release版本了，HBase2.1已经发布到HBase2.1.6了，个人预计将来也不会维护太长的时间。今后的HBase2.x的稳定版本将会是HBase2.2.x和HBase2.3.x，尤其是HBase2.2.x，可能成为未来真正意义上经过大厂线上严苛考验的版本。&lt;/p&gt;
+&lt;p&gt;这里，我总结一下未来HBase2.x上需要投入精力去做的一些事情：&lt;/p&gt;
+&lt;p&gt;1.ProcedureV2和AssignmentV2的引入，能通过框架的方式保证分布式任务流的原子性。这在HBase1.x上曾经是一个非常令人困惑的麻烦。举个简单的例子，在建表流程中，会分成几步：a. 在zk上加个znode；b. 在文件系统上新增表的目录；c. 生成Assign的任务，并分发到具体的RegionServer，让其执行online region的操作。在HBase1.x中任何一步异常了，都可能造成各状态不一致的问题发生，极端情况下可能需要通过类似HBCK这样的工具来进行修复。但在HBase2.x中，已经通过框架来解决了这个问题。需要人操行的地方少了，那代码需要操心的地方就很多了，由于各个任务流都采用Procedure V2进行重写，中间难免会一些bug，所以，后续将这块功能变得更加稳定，是一个优先级非常高的工作。&lt;/p&gt;
+&lt;p&gt;2.HBCK2支持修复更多的场景。虽说采用ProcedureV2之后，各Region状态不一致的概率大大降低了，但仍然难保可能会存在代码bug，导致有问题。目前的HBCK2主要支持修复Region Assign／UnAssign这样的问题，对于类似Region重叠和空洞这样的问题，期望HBCK2也能得到支持。这样即使集群出问题了，也有合适的工具能辅助修复。&lt;/p&gt;
+&lt;p&gt;3.In-Memory Compaction功能。可以说这是一个性能优化进步很大的功能，在我们大数据集(100亿行数据)的测试情况下，写入操作的P999延迟可以严格控制在令人惊讶的50ms以内，而且延迟非常稳定。但是社区考虑到其功能的稳定性，暂时没有把它设为默认的Memstore，也就是说默认的Mmestore仍然是延迟控制较差的ConcurrentSkipListMap实现的DefaultMemstore。在我们的测试环境，确实也发现了一些很难定位的BUG，例如&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-22608&#34;&gt;HBASE-22608&lt;/a&gt;。因此，将这个功能弄的更稳定也是优先级特别高的一个事情。&lt;/p&gt;
+&lt;p&gt;4.MOB这个功能很好，可以通过同一个API处理各个Value大小的Cell，而且原子语义等跟正常的Cell完全一致。但当前的方案仍然有一些缺陷，例如MOB的大Value compaction现在是由Master端来负责跑的，这种Compaction的数据量会是一个巨大的量，单点来做会非常耗时，毕竟单机网卡流量和CPU资源都非常有限。理想的方案是分担到各个RegionServer去做，但目前还没有实现，这也就是一个必须要做的工作。&lt;/p&gt;
+&lt;p&gt;5.在读写路径上引入Offheap后，有时候目前会碰到一些字节错乱的bug。这种bug只在特定条件下才触发，不易复现极大地增加了定位问题的难度，而且预计未来可能会碰到一些Memory Leak的问题，毕竟自己管理内存之后，就有这种可能。所以，这块也需要考虑。&lt;/p&gt;
+&lt;p&gt;6.在HBase2.x中，除了Flush和Snapshot两个流程之外，其他的管理流程全部都Procedure-V2化。所以将Flush和Snapshot搞成Procedure-V2的写法，也是一个非常必要的工作。毕竟现在既有ProcedureV1的写法，又有Procedure-V2的写法，让代码显得较为冗余，搞定了Flush和Snapshot之后，ProcedureV1的框架就可以完全清除掉了。&lt;/p&gt;
+&lt;p&gt;7.Replicaiton现在仍然是走ZK的，开启串行复制之后，每个Region都会在ZK上维护一个znode。这在大集群上可能会对ZK造成很大的压力。所以Replication从存ZK改成存Meta，也会是一个很必要的工作。之前我尝试去做这方面的研发，后面发现一个比较重要的问题，就是启动时Master和RegionServer死锁的问题，要解决这个问题可能需要对Master启动流程做一些调整，会有一些额外的工作。当时有其他优先级更高的事情，就干其他事情去了，从长远来看，改成走Meta是必须的。&lt;/p&gt;
+&lt;p&gt;8.CCSMap是阿里巴巴研发的内存压缩型ConcurrentSkipListMap，对写路径上的GC非常友好。目前社区还没有人力投入到Merge到master分支的工作上，未来期望是把它做成一个可插拔的组件，甚至是一个单独的依赖。可以随时替换掉JDK内置的ConcurrentSkipListMap，而且适用于除HBase之外的其他项目。&lt;/p&gt;
+&lt;p&gt;9.多级BlockCache，L1存Index/DataBlock、L2是基于offheap的BucketCache、L3是基于SSD的BucketCache。这样可以优化掉HDFS的协议栈，同时解决掉locality的问题。读性能能得到很好的优化。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>HBaseConAsia2019 盛会即将来袭</title>
       <link>https://openinx.github.io/posts/2019-07-08-hbaseconasia2019-is-coming/</link>
       <pubDate>Mon, 08 Jul 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-07-08-hbaseconasia2019-is-coming/</guid>
-      <description>第三届Apache HBaseConAsia 峰会将于7月20日在北京举行。作为Apache基金会旗下HBase社区的顶级用户峰会，HBaseCon大会是Apache HBase™官方从2012年开始发起和延续至今的技术会议。届时将有超20位来自亚洲一线互联网和大数据生态相关企业的技术专家和社区领袖亮相，带来HBase及大数据技术生态的最新洞察和行业实践。
-Apache HBase是基于Apache Hadoop构建的一个高可用、高性能、多版本的分布式NoSQL数据库，是Google Big table的开源实现，通过在廉价PC Server上搭建起大规模结构化存储集群，提供海量数据高性能的随机读写能力。
-伴随着移动互联网和物联网时代数据的爆炸性增长，HBase作为基础存储系统得到了快速发展与应用。阿里、Facebook、雅虎、小米、华为、腾讯、京东、滴滴、网易、360、快手等众多国内外顶级互联网公司先后成为HBase的重度用户，并深度参与项目优化与改进。目前，中国力量已成为HBase生态积极壮大的核心源动力，国内共有5位PMC成员和17位HBase Committer。其中小米公司累计培养2位PMC成员和9位HBase Committer。
-精彩演讲，先睹为快 开场演讲
-演讲嘉宾：崔宝秋（小米集团副总裁、技术委员会主席）
-HBase现状与未来方向 演讲主题：HBase现状
-内容简介：具有里程碑意义的HBase2.0.0发布不久，HBase3.0.0已经呼之欲出。资深PMC张铎将与您一起讨论HBase2.x以及HBase3.x的现状和核心改进。分享将包括Procedure-V2、Assignment-V2、HBCK2、跨机房同步复制、异步客户端等核心主题，干货十足。
-演讲嘉宾：张铎（HBase PMC成员，小米存储团队负责人，小米开源委员会秘书长）
-演讲主题：HBase在云上的优势及技术趋势
-内容简介：与传统的物理数据中心相比，HBase在云上的优势是什么？构建云HBase的挑战是什么？未来的技术趋势是什么？这些都将是本次演讲要讨论的重点。除此之外，还将包括以下内容：
-1.为何HBase架构天然适用云环境 2.HDFS构建在云盘上的挑战 3.HBase如何充分利用不同的云存储介质 4.HBase Serverless的实现和价值
-5.借助云端虚拟机的拓展能力，HBase还能可以做些什么？
-6.云端HBase如何从GPU，FPGA等新硬件中获益？
-演讲嘉宾：沈春辉（HBase PMC成员、阿里巴巴资深技术专家）
-演讲主题：HBase BucketCache with Persistency Memory
-内容简介：Intel的DCPMM (Date Centre Persistent Memory devices) 是一种新型的非易失内存技术。该设备支持更大内存容量的同时，还能保证数据的持久性。英特尔的资深工程师团队将分享如何将HBase BucketCache构建在这些大容量的非易失内存上，同时将给出具体的性能对比数据。
-演讲嘉宾：Anoop Jam John （HBase PMC成员）、Ramkrishna S Vasudevan (HBase PMC成员)、Xu Kai ( Intel 工程师）
-HBase2.x内核改进 演讲主题：Further GC optimization: Reading HFileBlock into offheap directly
-内容简介：HBase2.0.0版本已经将最核心的读写路径做了offheap化，极大的降低了GC对读写请求延迟的影响。但在性能测试中，我们发现当cache命中率不高时，读请求的P999延迟几乎和GC的Stop The World耗时一致。本次分享，将讲述Intel工程师和小米工程师如何一起携手展开一场极致的GC优化之旅。</description>
+      <description>&lt;p&gt;第三届Apache HBaseConAsia 峰会将于7月20日在北京举行。作为Apache基金会旗下HBase社区的顶级用户峰会，HBaseCon大会是Apache HBase™官方从2012年开始发起和延续至今的技术会议。届时将有超20位来自亚洲一线互联网和大数据生态相关企业的技术专家和社区领袖亮相，带来HBase及大数据技术生态的最新洞察和行业实践。&lt;/p&gt;
+&lt;p&gt;Apache HBase是基于Apache Hadoop构建的一个高可用、高性能、多版本的分布式NoSQL数据库，是Google Big table的开源实现，通过在廉价PC Server上搭建起大规模结构化存储集群，提供海量数据高性能的随机读写能力。&lt;/p&gt;
+&lt;p&gt;伴随着移动互联网和物联网时代数据的爆炸性增长，HBase作为基础存储系统得到了快速发展与应用。阿里、Facebook、雅虎、小米、华为、腾讯、京东、滴滴、网易、360、快手等众多国内外顶级互联网公司先后成为HBase的重度用户，并深度参与项目优化与改进。目前，中国力量已成为HBase生态积极壮大的核心源动力，国内共有5位PMC成员和17位HBase Committer。其中小米公司累计培养2位PMC成员和9位HBase Committer。&lt;/p&gt;
+&lt;h3 id=&#34;精彩演讲先睹为快&#34;&gt;精彩演讲，先睹为快&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;开场演讲&lt;/strong&gt;&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：崔宝秋（小米集团副总裁、技术委员会主席）&lt;/p&gt;
+&lt;h4 id=&#34;__hbase现状与未来方向__&#34;&gt;&lt;strong&gt;HBase现状与未来方向&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：HBase现状&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：具有里程碑意义的HBase2.0.0发布不久，HBase3.0.0已经呼之欲出。资深PMC张铎将与您一起讨论HBase2.x以及HBase3.x的现状和核心改进。分享将包括Procedure-V2、Assignment-V2、HBCK2、跨机房同步复制、异步客户端等核心主题，干货十足。&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：张铎（HBase PMC成员，小米存储团队负责人，小米开源委员会秘书长）&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：HBase在云上的优势及技术趋势&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：与传统的物理数据中心相比，HBase在云上的优势是什么？构建云HBase的挑战是什么？未来的技术趋势是什么？这些都将是本次演讲要讨论的重点。除此之外，还将包括以下内容：&lt;br&gt;
+1.为何HBase架构天然适用云环境 &lt;br&gt;
+2.HDFS构建在云盘上的挑战 &lt;br&gt;
+3.HBase如何充分利用不同的云存储介质 &lt;br&gt;
+4.HBase Serverless的实现和价值&lt;br&gt;
+5.借助云端虚拟机的拓展能力，HBase还能可以做些什么？&lt;br&gt;
+6.云端HBase如何从GPU，FPGA等新硬件中获益？&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：沈春辉（HBase PMC成员、阿里巴巴资深技术专家）&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：HBase BucketCache with Persistency Memory&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：Intel的DCPMM (Date Centre Persistent Memory devices) 是一种新型的非易失内存技术。该设备支持更大内存容量的同时，还能保证数据的持久性。英特尔的资深工程师团队将分享如何将HBase BucketCache构建在这些大容量的非易失内存上，同时将给出具体的性能对比数据。&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：Anoop Jam John （HBase PMC成员）、Ramkrishna S Vasudevan (HBase PMC成员)、Xu Kai ( Intel 工程师）&lt;/p&gt;
+&lt;h4 id=&#34;__hbase2x内核改进__&#34;&gt;&lt;strong&gt;HBase2.x内核改进&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：Further GC optimization: Reading HFileBlock into offheap directly&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：HBase2.0.0版本已经将最核心的读写路径做了offheap化，极大的降低了GC对读写请求延迟的影响。但在性能测试中，我们发现当cache命中率不高时，读请求的P999延迟几乎和GC的Stop The World耗时一致。本次分享，将讲述Intel工程师和小米工程师如何一起携手展开一场极致的GC优化之旅。&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：Anoop Jam John （HBase PMC成员），胡争（小米HBase工程师，HBase Committer）&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>漫谈HBase Filter</title>
       <link>https://openinx.github.io/posts/2019-07-02-blog-for-filter-list/</link>
       <pubDate>Tue, 02 Jul 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-07-02-blog-for-filter-list/</guid>
-      <description>初衷
-对数据库来说，满足业务多样化的查询方式非常重要。如果说有人设计了一个KV数据库，只提供了Get/Put/Scan这三种接口，估计要被用户吐槽到死，毕竟现实的业务场景并不简单。就以订单系统来说，查询给定用户最近三个月的历史订单，这里面的过滤条件就至少有2个：1. 查指定用户的订单；2. 订单必须是最近是三个月的。此外，这里的过滤条件还必须是用AND来连接的。如果通过Scan先把整个订单表信息加载到客户端，再按照条件过滤，这会给数据库系统造成极大压力。因此，在服务端实现一个数据过滤器是必须的。
-除了上例查询需求，类似小明或小黄最近三个月的历史订单这样的查询需求，同样很常见。这两个查询需求，本质上前者是一个AND连接的多条件查询，后者是一个OR连接的多条件查询，现实场景中AND和OR混合连接的多条件查询需求也很多。因此，HBase设计了Filter以及用AND或OR来连接Filter的FilterList。
-例如下面的过滤器，表示用户将读到rowkey以abc为前缀且值为testA的那些cell。
-fl = new FilterList(MUST_PASS_ALL, new PrefixFilter(&amp;#34;abc&amp;#34;), new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testA&amp;#34;))) ); 实际上，FilterList内部的子Filter也可以是一个FilterList。例如下面过滤器表示用户将读到那些rowkey以abc为前缀且值为testA或testB的f列cell列表。
-fl = new FilterList(MUST_PASS_ALL, new PrefixFilter(&amp;#34;abc&amp;#34;), new FamilyFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;f&amp;#34;))), new FilterList(MUST_PASS_ONE, new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testA&amp;#34;))), new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testB&amp;#34;))) ) ); 因此，FilterList的结构其实是一颗多叉树。每一个叶子节点都是一个具体的Filter，例如PrefixFilter、ValueFilter等；所有的非叶子节点都是一个FilterList，各个子树对应各自的子filter逻辑。对应的图示如下：
-当然，HBase还提供了NOT语义的SkipFilter，例如用户想拿到那些rowkey以abc为前缀但value既不等于testA又不等于testB的f列的cell列表，可用如下FilterList来表示：
-fl = new FilterList(MUST_PASS_ALL, new PrefixFilter(&amp;#34;abc&amp;#34;), new FamilyFilter(EQUAL, new BinaryComparator(&amp;#34;f&amp;#34;)), new SkipFilter( new FilterList(MUST_PASS_ONE, new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testA&amp;#34;))), new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testB&amp;#34;))) ) )); 实现
-Filter和FilterList作为一个通用的数据过滤框架，提供了一系列的接口，供用户来实现自定义的Filter。当然，HBase本身也提供了一系列的内置Filter，例如：PrefixFilter、RowFilter、FamilyFilter、QualifierFilter、ValueFilter、ColumnPrefixFilter等。
-事实上，很多Filter都没有必要在服务端从Scan的startRow一直扫描到endRow，中间有很多数据是可以根据Filter具体的语义直接跳过，通过减少磁盘IO和比较次数来实现更高的性能的。以PrefixFilter(&amp;ldquo;333&amp;rdquo;)为例，需要返回的是rowkey以“333”为前缀的数据。
-实际的扫描流程如图所示：</description>
+      <description>&lt;p&gt;&lt;strong&gt;初衷&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;对数据库来说，满足业务多样化的查询方式非常重要。如果说有人设计了一个KV数据库，只提供了Get/Put/Scan这三种接口，估计要被用户吐槽到死，毕竟现实的业务场景并不简单。就以订单系统来说，查询给定用户最近三个月的历史订单，这里面的过滤条件就至少有2个：1. 查指定用户的订单；2. 订单必须是最近是三个月的。此外，这里的过滤条件还必须是用AND来连接的。如果通过Scan先把整个订单表信息加载到客户端，再按照条件过滤，这会给数据库系统造成极大压力。因此，在服务端实现一个数据过滤器是必须的。&lt;/p&gt;
+&lt;p&gt;除了上例查询需求，类似小明或小黄最近三个月的历史订单这样的查询需求，同样很常见。这两个查询需求，本质上前者是一个AND连接的多条件查询，后者是一个OR连接的多条件查询，现实场景中AND和OR混合连接的多条件查询需求也很多。因此，HBase设计了Filter以及用AND或OR来连接Filter的FilterList。&lt;/p&gt;
+&lt;p&gt;例如下面的过滤器，表示用户将读到rowkey以abc为前缀且值为testA的那些cell。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;fl&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ALL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PrefixFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;abc&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testA&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;实际上，FilterList内部的子Filter也可以是一个FilterList。例如下面过滤器表示用户将读到那些rowkey以abc为前缀且值为testA或testB的f列cell列表。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;fl&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ALL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PrefixFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;abc&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FamilyFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;f&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ONE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testA&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testB&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;因此，FilterList的结构其实是一颗多叉树。每一个叶子节点都是一个具体的Filter，例如PrefixFilter、ValueFilter等；所有的非叶子节点都是一个FilterList，各个子树对应各自的子filter逻辑。对应的图示如下：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/filter-list-tree-structure.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;当然，HBase还提供了NOT语义的SkipFilter，例如用户想拿到那些rowkey以abc为前缀但value既不等于testA又不等于testB的f列的cell列表，可用如下FilterList来表示：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;fl&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ALL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PrefixFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;abc&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FamilyFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;f&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;SkipFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                   &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ONE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                        &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testA&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                        &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testB&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                   &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;));&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;实现&lt;/strong&gt;&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Nebula北京Meetup总结</title>
       <link>https://openinx.github.io/posts/2019-06-29-nebula-meetup/</link>
       <pubDate>Sat, 29 Jun 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-06-29-nebula-meetup/</guid>
-      <description>Nebula在京东北辰组织了他们的第二次Meetup，公司CEO叶小萌是蚂蚁金服图数据库Geobase的负责人。两位技术总监：陈恒和侯凤林，陈恒之前是HBase committer，现主要负责Nebula的存储层设计，类似TiKV。侯凤林(dutor)应该是负责query engine，类似TiDB。
-架构是典型的存储计算分离，计算层设计是类SQL，添加go语法来实现边跳转，管道来简化嵌套子查询。storage层是kv结构，按照key做静态hash分区(暂不支持动态分区)，hash值是根据顶点计算(解释图场景几乎没有按照点做order by的需求)，也就是同一个顶点的所有点和出入边都存同一个分区，出入边遍历友好。但是，对求A到B之间的top 10权重边这种需求，查询不友好，需要单独加索引。
-每个分区三副本组成一个raft group来实现复制，rocksdb引擎。单节点可能有很多分区，而每个分区都需要一个线程来负责推raft log，他们实现了一个共享线程池来负责推raft log，从而控制线程数。每个group内可设leaner角色，就是异步复制到其他系统，用于离线场景等。meta server跟data server设计类似，唯一区别是meta server负责meta相关的kv请求，data server负责图算子的kv请求。
-目前处于alpha版本，下半年会发布可用于生产环境的release版本。我理解金融反欺诈反洗钱领域对图数据库的需求很强烈，理由如下: 首先蚂蚁金服是国内最开始自研图数据库的厂商，后团队出来创业后，最先找到的合作对象是京东数科，京东有强烈需求，星云有技术和经验，二者是极佳的互补。未来的核心服务对象，我猜仍然会是银行，金融企业，保险行业，证券这些不缺钱的大金主。除BAT外的第二梯队和第三梯队的互联网公司会陆续参与到他们的社区来，开发，测试，修bug，提高口碑和知名度，甚至成为行业图数据库领域的标准产品(例如查询语言一旦成为国内标准，用户上了船，就很难下船了)。
-暂时不支持事务，他们未来打算用实用的pecolator分布式事务协议，有缺点(最大问题在于时间戳服务限制了集群的更大拓展性)但简单实用，因为基于rocksdb很容易通过单行事务实现多行事务，同时实现了去中心化的锁冲突检测。
-开源的方式很棒，选择的方向是风口，团队技术靠谱，又有风投加持，未来可期。
-最后，个人一点理解: infra既是个技术活，又是个产品活。对用户来说，产品经理的作用仍更胜于工程师，希望他们能打磨出一款精致的infra产品。</description>
+      <description>&lt;p&gt;Nebula在京东北辰组织了他们的第二次Meetup，公司CEO叶小萌是蚂蚁金服图数据库Geobase的负责人。两位技术总监：陈恒和侯凤林，陈恒之前是HBase committer，现主要负责Nebula的存储层设计，类似TiKV。侯凤林(dutor)应该是负责query engine，类似TiDB。&lt;/p&gt;
+&lt;p&gt;架构是典型的存储计算分离，计算层设计是类SQL，添加go语法来实现边跳转，管道来简化嵌套子查询。storage层是kv结构，按照key做静态hash分区(暂不支持动态分区)，hash值是根据顶点计算(解释图场景几乎没有按照点做order by的需求)，也就是同一个顶点的所有点和出入边都存同一个分区，出入边遍历友好。但是，对求A到B之间的top 10权重边这种需求，查询不友好，需要单独加索引。&lt;/p&gt;
+&lt;p&gt;每个分区三副本组成一个raft group来实现复制，rocksdb引擎。单节点可能有很多分区，而每个分区都需要一个线程来负责推raft log，他们实现了一个共享线程池来负责推raft log，从而控制线程数。每个group内可设leaner角色，就是异步复制到其他系统，用于离线场景等。meta server跟data server设计类似，唯一区别是meta server负责meta相关的kv请求，data server负责图算子的kv请求。&lt;/p&gt;
+&lt;p&gt;目前处于alpha版本，下半年会发布可用于生产环境的release版本。我理解金融反欺诈反洗钱领域对图数据库的需求很强烈，理由如下: 首先蚂蚁金服是国内最开始自研图数据库的厂商，后团队出来创业后，最先找到的合作对象是京东数科，京东有强烈需求，星云有技术和经验，二者是极佳的互补。未来的核心服务对象，我猜仍然会是银行，金融企业，保险行业，证券这些不缺钱的大金主。除BAT外的第二梯队和第三梯队的互联网公司会陆续参与到他们的社区来，开发，测试，修bug，提高口碑和知名度，甚至成为行业图数据库领域的标准产品(例如查询语言一旦成为国内标准，用户上了船，就很难下船了)。&lt;/p&gt;
+&lt;p&gt;暂时不支持事务，他们未来打算用实用的pecolator分布式事务协议，有缺点(最大问题在于时间戳服务限制了集群的更大拓展性)但简单实用，因为基于rocksdb很容易通过单行事务实现多行事务，同时实现了去中心化的锁冲突检测。&lt;/p&gt;
+&lt;p&gt;开源的方式很棒，选择的方向是风口，团队技术靠谱，又有风投加持，未来可期。&lt;/p&gt;
+&lt;p&gt;最后，个人一点理解: infra既是个技术活，又是个产品活。对用户来说，产品经理的作用仍更胜于工程师，希望他们能打磨出一款精致的infra产品。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Further GC optimization for HBase3.x: Reading HFileBlock into offheap directly</title>
       <link>https://openinx.github.io/posts/2019-06-23-offheap-block-reading/</link>
       <pubDate>Sun, 23 Jun 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-06-23-offheap-block-reading/</guid>
-      <description>In HBASE-21879, we redesigned the offheap read path: read the HFileBlock from HDFS to pooled offheap ByteBuffers directly, while before HBASE-21879 we just read the HFileBlock to heap which would still lead to high GC pressure.
-After few months of development and testing, all subtasks have been resovled now except the HBASE-21946 (It depends on HDFS-14483 and our HDFS teams are working on this, we expect the HDFS-14483 to be included in hadoop 2.</description>
+      <description>&lt;p&gt;In &lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21879&#34;&gt;HBASE-21879&lt;/a&gt;, we redesigned the offheap read path: read the HFileBlock from HDFS to pooled offheap
+ByteBuffers directly, while before &lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21879&#34;&gt;HBASE-21879&lt;/a&gt; we just read the HFileBlock to heap which would still lead
+to high GC pressure.&lt;/p&gt;
+&lt;p&gt;After few months of development and testing, all subtasks have been resovled now except the &lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21946&#34;&gt;HBASE-21946&lt;/a&gt;
+(It depends on &lt;a href=&#34;https://issues.apache.org/jira/browse/HDFS-14483&#34;&gt;HDFS-14483&lt;/a&gt; and our HDFS teams are working on this, we expect the HDFS-14483 to be included
+in hadoop 2.9.3 and after that the HBASE-21946 will get resolved). we think the feature is stable enough now.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>从HBase offheap到Netty的内存管理</title>
       <link>https://openinx.github.io/posts/2019-02-23-netty-memory-management/</link>
       <pubDate>Sat, 23 Feb 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-02-23-netty-memory-management/</guid>
-      <description>HBase的offheap现状
-HBase作为一款流行的分布式NoSQL数据库，被各个公司大量应用，其中有很多业务场景，例如信息流和广告业务，对访问的吞吐和延迟要求都非常高。HBase2.0为了尽最大可能避免Java GC对其造成的性能影响，已经对读写两条核心路径做了offheap化，也就是对象的申请都直接向JVM offheap申请，而offheap分出来的内存都是不会被JVM GC的，需要用户自己显式地释放。在写路径上，客户端发过来的请求包都会被分配到offheap的内存区域，直到数据成功写入WAL日志和Memstore，其中维护Memstore的ConcurrentSkipListSet其实也不是直接存Cell数据，而是存Cell的引用，真实的内存数据被编码在MSLAB的多个Chunk内，这样比较便于管理offheap内存。类似地，在读路径上，先尝试去读BucketCache，Cache未命中时则去HFile中读对应的Block，这其中占用内存最多的BucketCache就放在offheap上，拿到Block后编码成Cell发送给用户，整个过程基本上都不涉及heap内对象申请。
-但是在小米内部最近的性能测试结果中发现，100% Get的场景受Young GC的影响仍然比较严重，在HBASE-21879贴的两幅图中，可以非常明显的观察到Get操作的p999延迟跟G1 Young GC的耗时基本相同，都在100ms左右。按理说，在HBASE-11425之后，应该是所有的内存分配都是在offheap的，heap内应该几乎没有内存申请。但是，在仔细梳理代码后，发现从HFile中读Block的过程仍然是先拷贝到堆内去的，一直到BucketCache的WriterThread异步地把Block刷新到Offheap，堆内的DataBlock才释放。而磁盘型压测试验中，由于数据量大，Cache命中率并不高(~70%)，所以会有大量的Block读取走磁盘IO，于是Heap内产生大量的年轻代对象，最终导致Young区GC压力上升。
-消除Young GC直接的思路就是从HFile读DataBlock的时候，直接往Offheap上读。之前留下这个坑，主要是HDFS不支持ByteBuffer的Pread接口，当然后面开了HDFS-3246在跟进这个事情。但后面发现的一个问题就是：Rpc路径上读出来的DataBlock，进了BucketCache之后其实是先放到一个叫做RamCache的临时Map中，而且Block一旦进了这个Map就可以被其他的RPC给命中，所以当前RPC退出后并不能直接就把之前读出来的DataBlock给释放了，必须考虑RamCache是否也释放了。于是，就需要一种机制来跟踪一块内存是否同时不再被所有RPC路径和RamCache引用，只有在都不引用的情况下，才能释放内存。自然而言的想到用reference Count机制来跟踪ByteBuffer，后面发现其实Netty已经较完整地实现了这个东西，于是看了一下Netty的内存管理机制。
-Netty内存管理概述
-Netty作为一个高性能的基础框架，为了保证GC对性能的影响降到最低，做了大量的offheap化。而offheap的内存是程序员自己申请和释放，忘记释放或者提前释放都会造成内存泄露问题，所以一个好的内存管理器很重要。首先，什么样的内存分配器，才算一个是一个“好”的内存分配器：
-高并发且线程安全。一般一个进程共享一个全局的内存分配器，得保证多线程并发申请释放既高效又不出问题。 高效的申请和释放内存，这个不用多说。 方便跟踪分配出去内存的生命周期和定位内存泄露问题。 高效的内存利用率。有些内存分配器分配到一定程度，虽然还空闲大量内存碎片，但却再也没法分出一个稍微大一点的内存来。所以需要通过更精细化的管理，实现更高的内存利用率。 尽量保证同一个对象在物理内存上存储的连续性。例如分配器当前已经无法分配出一块完整连续的70MB内存来，有些分配器可能会通过多个内存碎片拼接出一块70MB的内存，但其实合适的算法设计，可以保证更高的连续性，从而实现更高的内存访问效率。 为了优化多线程竞争申请内存带来额外开销，Netty的PooledByteBufAllocator默认为每个处理器初始化了一个内存池，多个线程通过Hash选择某个特定的内存池。这样即使是多处理器并发处理的情况下，每个处理器基本上能使用各自独立的内存池，从而缓解竞争导致的同步等待开销。
-Netty的内存管理设计的比较精细。首先，将内存划分成一个个16MB的Chunk，每个Chunk又由2048个8KB的Page组成。这里需要提一下，对每一次内存申请，都将二进制对齐，例如需要申请150B的内存，则实际待申请的内存其实是256B，而且一个Page在未进Cache前（后续会讲到Cache）都只能被一次申请占用，也就是说一个Page内申请了256B的内存后，后面的请求也将不会在这个Page中申请，而是去找其他完全空闲的Page。有人可能会疑问，那这样岂不是内存利用率超低？因为一个8KB的Page被分配了256B之后，就再也分配了。其实不是，因为后面进了Cache后，还是可以分配出31个256B的ByteBuffer的。
-多个Chunk又可以组成一个ChunkList，再根据Chunk内存占用比例（Chunk使用内存/16MB * 100%）划分成不同等级的ChunkList。例如，下图中根据内存使用比例不同，分成了6个不同等级的ChunkList，其中q050内的Chunk都是占用比例在[50,100)这个区间内。随着内存的不断分配，q050内的某个Chunk占用比例可能等于100，则该Chunk被挪到q075这个ChunkList中。因为内存一直在申请和释放，上面那个Chunk可能因某些对象释放后，导致内存占用比小于75，则又会被放回到q050这个ChunkList中；当然也有可能某次分配后，内存占用比例再次到达100，则会被挪到q100内。这样设计的一个好处在于，可以尽量让申请请求落在比较空闲的Chunk上，从而提高了内存分配的效率。
-仍以上述为例，某对象A申请了150B内存，二进制对齐后实际申请了256B的内存。对象A释放后，对应申请的Page也就释放，Netty为了提高内存的使用效率，会把这些Page放到对应的Cache中，对象A申请的Page是按照256B来划分的，所以直接按上图所示，进入了一个叫做TinySubPagesCaches的缓冲池。这个缓冲池实际上是由多个队列组成，每个队列内代表Page划分的不同尺寸，例如queue-&amp;gt;32B，表示这个队列中，缓存的都是按照32B来划分的Page，一旦有32B的申请请求，就直接去这个队列找 未占满的Page。这里，可以发现，队列中的同一个Page可以被多次申请，只是他们申请的内存大小都一样，这也就不存在之前说的内存占用率低的问题，反而占用率会比较高。
-当然，Cache又按照Page内部划分量（称之为elemSizeOfPage，也就是一个Page内会划分成8KB/elemSizeOfPage个相等大小的小块）分成3个不同类型的Cache。对那些小于512B的申请请求，将尝试去TinySubPagesCaches中申请；对那些小于8KB的申请请求，将尝试去SmallSubPagesDirectCaches中申请；对那些小于16MB的申请请求，将尝试去NormalDirectCaches中申请。若对应的Cache中，不存在能用的内存，则直接去下面的6个ChunkList中找Chunk申请，当然这些Chunk有可能都被申请满了，那么只能向Offheap直接申请一个Chunk来满足需求了。
-Chunk内部分配的连续性（cache coherence）
-上文基本理清了Chunk之上内存申请的原理，总体来看，Netty的内存分配还是做的非常精细的，从算法上看，无论是 申请/释放效率 还是 内存利用率 都比较有保障。这里简单阐述一下Chunk内部如何分配内存。
-一个问题就是：如果要在一个Chunk内申请32KB的内存，那么Chunk应该怎么分配Page才比较高效，同时用户的内存访问效率比较高？
-一个简单的思路就是，把16MB的Chunk划分成2048个8KB的Page，然后用一个队列来维护这些Page。如果一个Page被用户申请，则从队列中出队；Page被用户释放，则重新入队。这样内存的分配和释放效率都非常高，都是O(1)的复杂度。但问题是，一个32KB对象会被分散在4个不连续的Page，用户的内存访问效率会受到影响。
-Netty的Chunk内分配算法，则兼顾了 申请/释放效率 和 用户内存访问效率。提高用户内存访问效率的一种方式就是，无论用户申请多大的内存量，都让它落在一块连续的物理内存上，这种特性我们称之为 Cache coherence。
-来看一下Netty的算法设计：
-首先，16MB的Chunk分成2048个8KB的Page，这2048个Page正好可以组成一颗完全二叉树（类似堆数据结构），这颗完全二叉树可以用一个int[] map来维护。例如，map[1]就表示root，map[2]就表示root的左儿子，map[3]就表示root的右儿子，依次类推，map[2048]是第一个叶子节点，map[2049]是第二个叶子节点&amp;hellip;，map[4095]是最后一个叶子节点。这2048个叶子节点，正好依次对应2048个Page。
-这棵树的特点就是，任何一颗子树的所有Page都是在物理内存上连续的。所以，申请32KB的物理内存连续的操作，可以转变成找一颗正好有4个Page空闲的子树，这样就解决了用户内存访问效率的问题，保证了Cache Coherence特性。
-但如何解决分配和释放的效率的问题呢？
-思路其实不是特别难，但是Netty中用各种二进制优化之后，显的不那么容易理解。所以，我画了一副图。其本质就是，完全二叉树的每个节点id都维护一个map[id]值，这个值表示以id为根的子树上，按照层次遍历，第一个完全空闲子树对应根节点的深度。例如在step.3图中，id=2，层次遍历碰到的第一颗完全空闲子树是id=5为根的子树，它的深度为2，所以map[2]=2。
-理解了map[id]这个概念之后，再看图其实就没有那么难理解了。图中画的是在一个64KB的chunk（由8个page组成，对应树最底层的8个叶子节点）上，依次分配8KB、32KB、16KB的维护流程。可以发现，无论是申请内存，还是释放内存，操作的复杂度都是log(N)，N代表节点的个数。而在Netty中，N=2048，所以申请、释放内存的复杂度都可以认为是常数级别的。
-通过上述算法，Netty同时保证了Chunk内部分配/申请多个Pages的高效和用户内存访问的高效。
-引用计数和内存泄露检查
-上文提到，HBase的ByteBuf也尝试采用引用计数来跟踪一块内存的生命周期，被引用一次则其refCount++，取消引用则refCount&amp;ndash; ，一旦refCount=0则认为内存可以回收到内存池。思路很简单，只是需要考虑下线程安全的问题。
-但事实上，即使有了引用计数，可能还是容易碰到忘记显式refCount&amp;ndash; 的操作，Netty提供了一个叫做ResourceLeakDetector的跟踪器。在Enable状态下，任何分出去的ByteBuf都会进入这个跟踪器中，回收ByteBuf时则从跟踪器中删除。一旦发现某个时间点跟踪器内的ByteBuff总数太大，则认为存在内存泄露。开启这个功能必然会对性能有所影响，所以生产环境下都不开这个功能，只有在怀疑有内存泄露问题时开启用来定位问题用。
-总结
-Netty的内存管理其实做的很精细，对HBase的Offheap化设计有不少启发。目前HBase的内存分配器至少有3种：
-Rpc路径上offheap内存分配器。实现较为简单，以定长64KB为单位分配Page给对象，发现Offheap池无法分出来，则直接去Heap申请。 Memstore的MSLAB内存分配器，核心思路跟RPC内存分配器相差不大。应该可以合二为一。 BucketCache上的BucketAllocator。 就第1点和第2点而言，我觉得今后尝试改成用Netty的PooledByteBufAllocator应该问题不大，毕竟Netty在多核并发/内存利用率以及CacheCoherence上都做了不少优化。由于BucketCache既可以存内存，又可以存SSD磁盘，甚至HDD磁盘。所以BucketAllocator做了更高程度的抽象，维护的都是一个(offset,len)这样的二元组，Netty现有的接口并不能满足需求，所以估计暂时只能维持现状。
-可以预期的是，HBase2.0性能必定是朝更好方向发展的，尤其是GC对P999的影响会越来越小。
-参考资料
-https://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919/ https://netty.io/wiki/reference-counted-objects.html </description>
+      <description>&lt;p&gt;&lt;strong&gt;HBase的offheap现状&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;HBase作为一款流行的分布式NoSQL数据库，被各个公司大量应用，其中有很多业务场景，例如信息流和广告业务，对访问的吞吐和延迟要求都非常高。HBase2.0为了尽最大可能避免Java GC对其造成的性能影响，已经对读写两条核心路径做了offheap化，也就是对象的申请都直接向JVM offheap申请，而offheap分出来的内存都是不会被JVM GC的，需要用户自己显式地释放。在写路径上，客户端发过来的请求包都会被分配到offheap的内存区域，直到数据成功写入WAL日志和Memstore，其中维护Memstore的ConcurrentSkipListSet其实也不是直接存Cell数据，而是存Cell的引用，真实的内存数据被编码在MSLAB的多个Chunk内，这样比较便于管理offheap内存。类似地，在读路径上，先尝试去读BucketCache，Cache未命中时则去HFile中读对应的Block，这其中占用内存最多的BucketCache就放在offheap上，拿到Block后编码成Cell发送给用户，整个过程基本上都不涉及heap内对象申请。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-offheap-onheap.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;但是在小米内部最近的性能测试结果中发现，100% Get的场景受Young GC的影响仍然比较严重，在&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21879&#34;&gt;HBASE-21879&lt;/a&gt;贴的两幅图中，可以非常明显的观察到Get操作的p999延迟跟G1 Young GC的耗时基本相同，都在100ms左右。按理说，在&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-11425&#34;&gt;HBASE-11425&lt;/a&gt;之后，应该是所有的内存分配都是在offheap的，heap内应该几乎没有内存申请。但是，在仔细梳理代码后，发现从HFile中读Block的过程仍然是先拷贝到堆内去的，一直到BucketCache的WriterThread异步地把Block刷新到Offheap，堆内的DataBlock才释放。而磁盘型压测试验中，由于数据量大，Cache命中率并不高(~70%)，所以会有大量的Block读取走磁盘IO，于是Heap内产生大量的年轻代对象，最终导致Young区GC压力上升。&lt;/p&gt;
+&lt;p&gt;消除Young GC直接的思路就是从HFile读DataBlock的时候，直接往Offheap上读。之前留下这个坑，主要是HDFS不支持ByteBuffer的Pread接口，当然后面开了&lt;a href=&#34;https://issues.apache.org/jira/browse/HDFS-3246&#34;&gt;HDFS-3246&lt;/a&gt;在跟进这个事情。但后面发现的一个问题就是：Rpc路径上读出来的DataBlock，进了BucketCache之后其实是先放到一个叫做RamCache的临时Map中，而且Block一旦进了这个Map就可以被其他的RPC给命中，所以当前RPC退出后并不能直接就把之前读出来的DataBlock给释放了，必须考虑RamCache是否也释放了。于是，就需要一种机制来跟踪一块内存是否同时不再被所有RPC路径和RamCache引用，只有在都不引用的情况下，才能释放内存。自然而言的想到用reference Count机制来跟踪ByteBuffer，后面发现其实Netty已经较完整地实现了这个东西，于是看了一下Netty的内存管理机制。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Netty内存管理概述&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Netty作为一个高性能的基础框架，为了保证GC对性能的影响降到最低，做了大量的offheap化。而offheap的内存是程序员自己申请和释放，忘记释放或者提前释放都会造成内存泄露问题，所以一个好的内存管理器很重要。首先，什么样的内存分配器，才算一个是一个“好”的内存分配器：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;高并发且线程安全。一般一个进程共享一个全局的内存分配器，得保证多线程并发申请释放既高效又不出问题。&lt;/li&gt;
+&lt;li&gt;高效的申请和释放内存，这个不用多说。&lt;/li&gt;
+&lt;li&gt;方便跟踪分配出去内存的生命周期和定位内存泄露问题。&lt;/li&gt;
+&lt;li&gt;高效的内存利用率。有些内存分配器分配到一定程度，虽然还空闲大量内存碎片，但却再也没法分出一个稍微大一点的内存来。所以需要通过更精细化的管理，实现更高的内存利用率。&lt;/li&gt;
+&lt;li&gt;尽量保证同一个对象在物理内存上存储的连续性。例如分配器当前已经无法分配出一块完整连续的70MB内存来，有些分配器可能会通过多个内存碎片拼接出一块70MB的内存，但其实合适的算法设计，可以保证更高的连续性，从而实现更高的内存访问效率。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;为了优化多线程竞争申请内存带来额外开销，Netty的PooledByteBufAllocator默认为每个处理器初始化了一个内存池，多个线程通过Hash选择某个特定的内存池。这样即使是多处理器并发处理的情况下，每个处理器基本上能使用各自独立的内存池，从而缓解竞争导致的同步等待开销。&lt;/p&gt;
+&lt;p&gt;Netty的内存管理设计的比较精细。首先，将内存划分成一个个16MB的Chunk，每个Chunk又由2048个8KB的Page组成。这里需要提一下，对每一次内存申请，都将二进制对齐，例如需要申请150B的内存，则实际待申请的内存其实是256B，而且一个Page在未进Cache前（后续会讲到Cache）都只能被一次申请占用，也就是说一个Page内申请了256B的内存后，后面的请求也将不会在这个Page中申请，而是去找其他完全空闲的Page。有人可能会疑问，那这样岂不是内存利用率超低？因为一个8KB的Page被分配了256B之后，就再也分配了。其实不是，因为后面进了Cache后，还是可以分配出31个256B的ByteBuffer的。&lt;/p&gt;
+&lt;p&gt;多个Chunk又可以组成一个ChunkList，再根据Chunk内存占用比例（Chunk使用内存/16MB * 100%）划分成不同等级的ChunkList。例如，下图中根据内存使用比例不同，分成了6个不同等级的ChunkList，其中q050内的Chunk都是占用比例在[50,100)这个区间内。随着内存的不断分配，q050内的某个Chunk占用比例可能等于100，则该Chunk被挪到q075这个ChunkList中。因为内存一直在申请和释放，上面那个Chunk可能因某些对象释放后，导致内存占用比小于75，则又会被放回到q050这个ChunkList中；当然也有可能某次分配后，内存占用比例再次到达100，则会被挪到q100内。这样设计的一个好处在于，可以尽量让申请请求落在比较空闲的Chunk上，从而提高了内存分配的效率。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/PoolThreadCache.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;仍以上述为例，某对象A申请了150B内存，二进制对齐后实际申请了256B的内存。对象A释放后，对应申请的Page也就释放，Netty为了提高内存的使用效率，会把这些Page放到对应的Cache中，对象A申请的Page是按照256B来划分的，所以直接按上图所示，进入了一个叫做TinySubPagesCaches的缓冲池。这个缓冲池实际上是由多个队列组成，每个队列内代表Page划分的不同尺寸，例如queue-&amp;gt;32B，表示这个队列中，缓存的都是按照32B来划分的Page，一旦有32B的申请请求，就直接去这个队列找 &lt;strong&gt;未占满的Page&lt;/strong&gt;。这里，可以发现，队列中的同一个Page可以被多次申请，只是他们申请的内存大小都一样，这也就不存在之前说的内存占用率低的问题，反而占用率会比较高。&lt;/p&gt;
+&lt;p&gt;当然，Cache又按照Page内部划分量（称之为elemSizeOfPage，也就是一个Page内会划分成8KB/elemSizeOfPage个相等大小的小块）分成3个不同类型的Cache。对那些小于512B的申请请求，将尝试去TinySubPagesCaches中申请；对那些小于8KB的申请请求，将尝试去SmallSubPagesDirectCaches中申请；对那些小于16MB的申请请求，将尝试去NormalDirectCaches中申请。若对应的Cache中，不存在能用的内存，则直接去下面的6个ChunkList中找Chunk申请，当然这些Chunk有可能都被申请满了，那么只能向Offheap直接申请一个Chunk来满足需求了。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Chunk内部分配的连续性（cache coherence）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;上文基本理清了Chunk之上内存申请的原理，总体来看，Netty的内存分配还是做的非常精细的，从算法上看，无论是 &lt;strong&gt;申请/释放效率&lt;/strong&gt; 还是 &lt;strong&gt;内存利用率&lt;/strong&gt; 都比较有保障。这里简单阐述一下Chunk内部如何分配内存。&lt;/p&gt;
+&lt;p&gt;一个问题就是：如果要在一个Chunk内申请32KB的内存，那么Chunk应该怎么分配Page才比较高效，同时用户的内存访问效率比较高？&lt;/p&gt;
+&lt;p&gt;一个简单的思路就是，把16MB的Chunk划分成2048个8KB的Page，然后用一个队列来维护这些Page。如果一个Page被用户申请，则从队列中出队；Page被用户释放，则重新入队。这样内存的分配和释放效率都非常高，都是O(1)的复杂度。但问题是，一个32KB对象会被分散在4个不连续的Page，用户的内存访问效率会受到影响。&lt;/p&gt;
+&lt;p&gt;Netty的Chunk内分配算法，则兼顾了 &lt;strong&gt;申请/释放效率&lt;/strong&gt; 和 &lt;strong&gt;用户内存访问效率&lt;/strong&gt;。提高用户内存访问效率的一种方式就是，无论用户申请多大的内存量，都让它落在一块连续的物理内存上，这种特性我们称之为 &lt;strong&gt;Cache coherence&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;来看一下Netty的算法设计：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/netty-chuck-allocation.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;首先，16MB的Chunk分成2048个8KB的Page，这2048个Page正好可以组成一颗完全二叉树（类似堆数据结构），这颗完全二叉树可以用一个int[] map来维护。例如，map[1]就表示root，map[2]就表示root的左儿子，map[3]就表示root的右儿子，依次类推，map[2048]是第一个叶子节点，map[2049]是第二个叶子节点&amp;hellip;，map[4095]是最后一个叶子节点。这2048个叶子节点，正好依次对应2048个Page。&lt;/p&gt;
+&lt;p&gt;这棵树的特点就是，任何一颗子树的所有Page都是在物理内存上连续的。所以，申请32KB的物理内存连续的操作，可以转变成找一颗正好有4个Page空闲的子树，这样就解决了用户内存访问效率的问题，保证了Cache Coherence特性。&lt;/p&gt;
+&lt;p&gt;但如何解决分配和释放的效率的问题呢？&lt;/p&gt;
+&lt;p&gt;思路其实不是特别难，但是Netty中用各种二进制优化之后，显的不那么容易理解。所以，我画了一副图。其本质就是，完全二叉树的每个节点id都维护一个map[id]值，这个值表示以id为根的子树上，按照层次遍历，第一个完全空闲子树对应根节点的深度。例如在step.3图中，id=2，层次遍历碰到的第一颗完全空闲子树是id=5为根的子树，它的深度为2，所以map[2]=2。&lt;/p&gt;
+&lt;p&gt;理解了map[id]这个概念之后，再看图其实就没有那么难理解了。图中画的是在一个64KB的chunk（由8个page组成，对应树最底层的8个叶子节点）上，依次分配8KB、32KB、16KB的维护流程。可以发现，无论是申请内存，还是释放内存，操作的复杂度都是log(N)，N代表节点的个数。而在Netty中，N=2048，所以申请、释放内存的复杂度都可以认为是常数级别的。&lt;/p&gt;
+&lt;p&gt;通过上述算法，Netty同时保证了Chunk内部分配/申请多个Pages的高效和用户内存访问的高效。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;引用计数和内存泄露检查&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;上文提到，HBase的ByteBuf也尝试采用引用计数来跟踪一块内存的生命周期，被引用一次则其refCount++，取消引用则refCount&amp;ndash; ，一旦refCount=0则认为内存可以回收到内存池。思路很简单，只是需要考虑下线程安全的问题。&lt;/p&gt;
+&lt;p&gt;但事实上，即使有了引用计数，可能还是容易碰到忘记显式refCount&amp;ndash; 的操作，Netty提供了一个叫做ResourceLeakDetector的跟踪器。在Enable状态下，任何分出去的ByteBuf都会进入这个跟踪器中，回收ByteBuf时则从跟踪器中删除。一旦发现某个时间点跟踪器内的ByteBuff总数太大，则认为存在内存泄露。开启这个功能必然会对性能有所影响，所以生产环境下都不开这个功能，只有在怀疑有内存泄露问题时开启用来定位问题用。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;总结&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Netty的内存管理其实做的很精细，对HBase的Offheap化设计有不少启发。目前HBase的内存分配器至少有3种：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Rpc路径上offheap内存分配器。实现较为简单，以定长64KB为单位分配Page给对象，发现Offheap池无法分出来，则直接去Heap申请。&lt;/li&gt;
+&lt;li&gt;Memstore的MSLAB内存分配器，核心思路跟RPC内存分配器相差不大。应该可以合二为一。&lt;/li&gt;
+&lt;li&gt;BucketCache上的BucketAllocator。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;就第1点和第2点而言，我觉得今后尝试改成用Netty的PooledByteBufAllocator应该问题不大，毕竟Netty在多核并发/内存利用率以及CacheCoherence上都做了不少优化。由于BucketCache既可以存内存，又可以存SSD磁盘，甚至HDD磁盘。所以BucketAllocator做了更高程度的抽象，维护的都是一个(offset,len)这样的二元组，Netty现有的接口并不能满足需求，所以估计暂时只能维持现状。&lt;/p&gt;
+&lt;p&gt;可以预期的是，HBase2.0性能必定是朝更好方向发展的，尤其是GC对P999的影响会越来越小。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;参考资料&lt;/strong&gt;&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;https://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf&#34;&gt;https://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919/&#34;&gt;https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919/&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://netty.io/wiki/reference-counted-objects.html&#34;&gt;https://netty.io/wiki/reference-counted-objects.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;</description>
     </item>
-    
     <item>
       <title>HBaseConWest2018演讲 - HBase Practice In XiaoMi</title>
       <link>https://openinx.github.io/posts/2018-06-18-hbaseconwest2018/</link>
       <pubDate>Mon, 18 Jun 2018 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2018-06-18-hbaseconwest2018/</guid>
-      <description>HBaseConWest2018于6.18日在美国加州圣何塞举办，本次会议由Hortonworks承办。每年去美国硅谷参加HBaseConWest已经算是小米HBase团队的惯例了，一方面小米团队在HBase社区的影响力有目共睹，目前已经培养了7位HBase Committer，其中有2位HBase PMC；另外一方面，小米内部也很乐意对外去分享公司一年所做的工作，相当于把一年的工作（包括内部的实践以及社区贡献）做一个年度总结分享给大家。
-所以，2018年我们也很积极的提交了演讲议题(HBase Practice In XiaoMi)，并花了很多精力整理总结，内部还做过3次英文试讲。但遗憾的是，今年中美关系比较紧张，美国签证没有如期办下来。按照组内历年的经验，一般提前一个月左右办理签证，能很顺利办下来。今年我们在5.14日去大使馆面试申请签证，被要求填写补充材料，在5.16拿到承办方的visa letter并提交补充材料之后，一直到现在签证尚未发放。本想没办法去现场的话，就只能把我们这个议题提交到8.17日的HBaseConAsia去讲。写邮件跟组委会沟通，组委会之前把我们talk的优先级放的比较高，也比较喜欢我们演讲内容，所以后面就想让我们做一个远程分享。为了以防万一设备异常之类的，就先让我们准备一个视频，有任何异常的话，直接放视频也不慌。于是，我们就录了一个，发现视频效果还行（主要是可以做剪辑，哈哈），就跟组委会说，现场干脆直接用视频好了，有任何疑问的话，远程答疑就好。
-于是，最后在HBaseConWest2018上看到的就是以下PPT和视频了。演讲内容主要分两部分，第一部分小米内部实践，由我的同事田竞云来分享，第二部分复制功能改进，由我来分享。
-PPT Video 总体来说，没有机会去HBaseConWest2018现场分享这个事情，个人还是挺遗憾的。之前Hortonworks的Ted Yu和Pinterest的TianYing获知我们要去美国分享，都很积极的约了我们聚会，最后也只能取消。原定的去美国一些其他行程，也只得取消。有一点值得欣慰的是，在组委会和我们的共同努力下，总算是有机会把小米过去一年做的一些工作整理并呈现给大家，包括美国HBase社区的朋友们。感谢组委会和社区，也感谢铎神和小豪在试讲中提出的很多宝贵建议。</description>
+      <description>&lt;p&gt;&lt;a href=&#34;http://hbase-help.com/?/article/15&#34;&gt;HBaseConWest2018&lt;/a&gt;于6.18日在美国加州圣何塞举办，本次会议由Hortonworks承办。每年去美国硅谷参加HBaseConWest已经算是小米HBase团队的惯例了，一方面小米团队在HBase社区的影响力有目共睹，目前已经培养了7位HBase Committer，其中有2位HBase PMC；另外一方面，小米内部也很乐意对外去分享公司一年所做的工作，相当于把一年的工作（包括内部的实践以及社区贡献）做一个&lt;a href=&#34;http://hbase-help.com/?/question/64&#34;&gt;年度总结&lt;/a&gt;分享给大家。&lt;/p&gt;
+&lt;p&gt;所以，2018年我们也很积极的提交了演讲议题(HBase Practice In XiaoMi)，并花了很多精力整理总结，内部还做过3次英文试讲。但遗憾的是，今年中美关系比较紧张，美国签证没有如期办下来。按照组内历年的经验，一般提前一个月左右办理签证，能很顺利办下来。今年我们在5.14日去大使馆面试申请签证，被要求填写补充材料，在5.16拿到承办方的visa letter并提交补充材料之后，一直到现在签证尚未发放。本想没办法去现场的话，就只能把我们这个议题提交到8.17日的HBaseConAsia去讲。写邮件跟组委会沟通，组委会之前把我们talk的优先级放的比较高，也比较喜欢我们演讲内容，所以后面就想让我们做一个远程分享。为了以防万一设备异常之类的，就先让我们准备一个视频，有任何异常的话，直接放视频也不慌。于是，我们就录了一个，发现视频效果还行（主要是可以做剪辑，哈哈），就跟组委会说，现场干脆直接用视频好了，有任何疑问的话，远程答疑就好。&lt;/p&gt;
+&lt;p&gt;于是，最后在HBaseConWest2018上看到的就是以下PPT和视频了。演讲内容主要分两部分，第一部分小米内部实践，由我的同事田竞云来分享，第二部分复制功能改进，由我来分享。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;https://openinx.github.io/ppt/hbase-practice-at-xiaomi-hbasecon2018.pdf&#34;&gt;PPT&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://pan.baidu.com/s/10svpfoSU2hJaOqAMTQl2og&#34;&gt;Video&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;总体来说，没有机会去HBaseConWest2018现场分享这个事情，个人还是挺遗憾的。之前Hortonworks的Ted Yu和Pinterest的TianYing获知我们要去美国分享，都很积极的约了我们聚会，最后也只能取消。原定的去美国一些其他行程，也只得取消。有一点值得欣慰的是，在组委会和我们的共同努力下，总算是有机会把小米过去一年做的一些工作整理并呈现给大家，包括美国HBase社区的朋友们。感谢组委会和社区，也感谢铎神和小豪在试讲中提出的很多宝贵建议。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>成为HBase Committer</title>
       <link>https://openinx.github.io/posts/2017-10-22-become-hbase-committer/</link>
       <pubDate>Sun, 22 Oct 2017 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2017-10-22-become-hbase-committer/</guid>
-      <description>我于10月20号，接受Apache HBase社区邀请，成为HBase Committer。 由于我在小米就是专门负责维护内部HBase分支以及线上集群，再加上之前小米已经有6位HBase Committer，其中一位PMC(项目委员会成员)， 所以在这样的环境之下，成为Committer其实是一件特别顺理成章的事情，并没有特别值得骄傲的地方。相比一个在公司做HBase方向但是公司缺乏HBase Committer的同学来说，成为HBase Committer需要付出更多的时间和努力。
-下面来谈谈我对社区的一些观察：
-首先HBase的PMC成员大部分都是极其活跃的，活跃到什么程度呢，就是一年365天，基本上每天都在为社区贡献，甚至度假的时候只要能连上网，他们也在不遗余力的回复JIRA和邮件。 当然对大部分PMC而言，为HBase社区贡献并推动社区的进步，跟他们所在公司的目标是一致的，但从日活跃时长以及一年的活跃天数来看，他们相比普通的敬业码农，却都称得上是不折不扣的工作狂。
-Apache相关社区具有提升机制，例如当一个Contributor提及的代码超过一定量时，就会有PMC成员推荐这位Contributor去当Committer，当一个Committer的贡献达到一定程度的时候，又会被PMC推荐加入项目管理委员会，也就是PMC。同时，Committer和PMC在业界都是能得到广泛认可的，无论从个人职业层面，还是从项目发展方面，这都是一个很好的机制。而Github上的大部分开源项目可能都没有类似的提升机制，所以一个Contributor可能贡献了很多代码，但还是Contributor，这很可能会打消积极性。
-HBase社区的代码贡献者来自全球的各个地方，有的人在美国，有的人在印度，有的人在中国。各位贡献者分布在不同的时区内，所以跟进一个问题，可能是今天中国人说了一句话，等到明天美国人才能回句话，接着印度人又提了一些意见，最后中国人觉得不错可以做就开始做了。整个任务的跟进时间可能特别长，所以，做社区的事情一定要有长期跟进的准备。有一些同学跟我聊过，说在公司里面跟进社区问题会不会很耽误时间，其实具体每一天来说，并不需要花特别多的时间用来跟进社区，我工作时间一般还是好好在公司搬砖，下班后会花一些时间用来写社区代码之类的，反正社区跟进也比较慢。
-公司和社区关系。小米相对来说比较开放一点，公司管理层面非常鼓励员工积极参与到开源社区，HBase就不用多说，除了HBase之外，贵米也自主研发并开源的一些项目，例如分布式KV存储Pegasus，业界知名的监控系统Falcon等等。这其实是一个好现象，一方面能为公司塑造较好的技术品牌，另外一方面，开源能激发码农的工作积极性，因为码农有一个很好的平台和世界上该领域最优秀的程序员们一起合作，精神层面能到极大的满足。相对应的问题就是社区做的这些工作是否对公司有用，如果是fix bug，必然有用。如果是用不上的新功能，这个确实没有必要花太多精力，因为你觉得用不上的，别人也会觉得用不上。所以，修复Bug加上开发有用的Feature，才是正道。</description>
+      <description>&lt;p&gt;我于10月20号，接受Apache HBase社区邀请，成为HBase Committer。  由于我在小米就是专门负责维护内部HBase分支以及线上集群，再加上之前小米已经有6位HBase Committer，其中一位PMC(项目委员会成员)， 所以在这样的环境之下，成为Committer其实是一件特别顺理成章的事情，并没有特别值得骄傲的地方。相比一个在公司做HBase方向但是公司缺乏HBase Committer的同学来说，成为HBase Committer需要付出更多的时间和努力。&lt;/p&gt;
+&lt;p&gt;下面来谈谈我对社区的一些观察：&lt;/p&gt;
+&lt;p&gt;首先HBase的PMC成员大部分都是极其活跃的，活跃到什么程度呢，就是一年365天，基本上每天都在为社区贡献，甚至度假的时候只要能连上网，他们也在不遗余力的回复JIRA和邮件。 当然对大部分PMC而言，为HBase社区贡献并推动社区的进步，跟他们所在公司的目标是一致的，但从日活跃时长以及一年的活跃天数来看，他们相比普通的敬业码农，却都称得上是不折不扣的工作狂。&lt;/p&gt;
+&lt;p&gt;Apache相关社区具有提升机制，例如当一个Contributor提及的代码超过一定量时，就会有PMC成员推荐这位Contributor去当Committer，当一个Committer的贡献达到一定程度的时候，又会被PMC推荐加入项目管理委员会，也就是PMC。同时，Committer和PMC在业界都是能得到广泛认可的，无论从个人职业层面，还是从项目发展方面，这都是一个很好的机制。而Github上的大部分开源项目可能都没有类似的提升机制，所以一个Contributor可能贡献了很多代码，但还是Contributor，这很可能会打消积极性。&lt;/p&gt;
+&lt;p&gt;HBase社区的代码贡献者来自全球的各个地方，有的人在美国，有的人在印度，有的人在中国。各位贡献者分布在不同的时区内，所以跟进一个问题，可能是今天中国人说了一句话，等到明天美国人才能回句话，接着印度人又提了一些意见，最后中国人觉得不错可以做就开始做了。整个任务的跟进时间可能特别长，所以，做社区的事情一定要有长期跟进的准备。有一些同学跟我聊过，说在公司里面跟进社区问题会不会很耽误时间，其实具体每一天来说，并不需要花特别多的时间用来跟进社区，我工作时间一般还是好好在公司搬砖，下班后会花一些时间用来写社区代码之类的，反正社区跟进也比较慢。&lt;/p&gt;
+&lt;p&gt;公司和社区关系。小米相对来说比较开放一点，公司管理层面非常鼓励员工积极参与到开源社区，HBase就不用多说，除了HBase之外，贵米也自主研发并开源的一些项目，例如&lt;a href=&#34;https://github.com/xiaomi/pegasus&#34;&gt;分布式KV存储Pegasus&lt;/a&gt;，&lt;a href=&#34;https://github.com/XiaoMi/open-falcon&#34;&gt;业界知名的监控系统Falcon&lt;/a&gt;等等。这其实是一个好现象，一方面能为公司塑造较好的技术品牌，另外一方面，开源能激发码农的工作积极性，因为码农有一个很好的平台和世界上该领域最优秀的程序员们一起合作，精神层面能到极大的满足。相对应的问题就是社区做的这些工作是否对公司有用，如果是fix bug，必然有用。如果是用不上的新功能，这个确实没有必要花太多精力，因为你觉得用不上的，别人也会觉得用不上。所以，修复Bug加上开发有用的Feature，才是正道。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>HBase Region Balance实践</title>
       <link>https://openinx.github.io/posts/2016-06-21-hbase-balance/</link>
       <pubDate>Wed, 28 Jun 2017 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2016-06-21-hbase-balance/</guid>
-      <description>HBase是一种支持自动负载均衡的分布式KV数据库，在开启balance的开关(balance_switch)后，HBase的HMaster进程会自动根据 指定策略 挑选出一些Region，并将这些Region分配给负载比较低的RegionServer上。官方目前支持两种挑选Region的策略，一种叫做DefaultLoadBalancer，另一种叫做StochasticLoadBalancer，这两种策略后面会具体讲到。由于HBase的所有数据(包括HLog/Meta/HStoreFile等)都是写入到HDFS文件系统中的， 因此HBase的Region移动其实非常轻量级。在做Region移动的时候，保持这个Region对应的HDFS文件位置不变，只需要将Region的Meta数据分配到相关的RegionServer即可，整个Region移动的过程取决于RegionClose以及RegionOpen的耗时，这个时间一般都很短。
-本文来讲讲hbase的balance实现。
-Balance的流程 首先通过LoadBalancer找出所有需要移动的region plan，一个region plan包括region/原始RegionServer/目的RegionServer三个属性。 unassign region , 将region从原来的RegionServer上解除绑定； assign region ，将region绑定到目标RegionServer上; 其中， unassign region的具体流程为：
-create zk closing node . 该节点在/unassigned路径下， 包含(znode状态，region名字，原始RS名，payload)这些数据。 hmaster 调用rpc服务关闭region server。region-close的流程大致为先获取region的writeLock ， 然后flush memstore, 再并发关闭该region下的所有的store file文件(注意一个region有多个store，每个store又有多个store file , 所以可以实现并发close store file) 。最后释放region的writeLock. 设置zk closing node的znode状态为closed. assgin region的具体流程为:
-获取到对应的Region Plan. HMaster调用rpc服务去Region Plan对应的RegionServer上open region. 这里会先更新/unassigned节点为opening. 然后并发Load HStore，再更行zk/ROOT/META表信息，这里是为了client下次能获取到正确的路由信息， 最后更新region状态为OPEN. DefaultLoadBalancer策略 这种策略能够保证每个RS的regions个数基本上都相等，确切来说，假设一共有n个RS，第i个RS有Ai个region，记average=sigma(Ai)/n , 那么这种策略能够保证所有的RS的region个数都在[floor(average), ceil(average)]之间。这种策略的实现简单，应用广泛。
-但是，这种策略考虑的因素比较单一， 没有考虑到每台region server的读写qps/负载压力等等，这样就可能导致出现一种情况：虽然每个region server的regions都非常接近，但是90%的请求还是落在了一台RS上，因为这台RS上的region全部都是热点数据，这样还是没有达到负载均衡的目的。 但我觉得balance的首要目的是保证数据均衡，如果在数据均衡的情况下，负载还是集中，这时候就要考虑下rowKey的选择是否有问题了。因此, 我个人还是比较推荐采用DefaultLoadBalancer的。
-StochasticLoadBalancer策略 StochasticLoadBalancer 这种策略真的是非常复杂，简单来讲，是一种综合权衡一下6个因素的均衡策略：
-每台RegionServer读请求数(ReadRequestCostFunction) 每台RegionServer写请求数(WriteRequestCostFunction) 每台RegionServer的Region个数(RegionCountSkewCostFunction) 移动代价(MoveCostFunction) 数据locality(TableSkewCostFunction) 每张表占据RegionServer中region个数上限(LocalityCostFunction) 对于cluster的每一种region分布， 采用6个因素加权的方式算出一个代价值，这个代价值就用来评估当前region分布是否均衡，越均衡则代价值越低。然后通过成千上万次随机迭代来找到一组RegionMove的序列，使得最终的代价值严格递减。 得到的这一组RegionMove就是HMaster最终执行的region迁移方案。</description>
+      <description>&lt;p&gt;HBase是一种支持自动负载均衡的分布式KV数据库，在开启balance的开关(balance_switch)后，HBase的HMaster进程会自动根据 &lt;strong&gt;指定策略&lt;/strong&gt; 挑选出一些Region，并将这些Region分配给负载比较低的RegionServer上。官方目前支持两种挑选Region的策略，一种叫做DefaultLoadBalancer，另一种叫做StochasticLoadBalancer，这两种策略后面会具体讲到。由于HBase的所有数据(包括HLog/Meta/HStoreFile等)都是写入到HDFS文件系统中的， 因此HBase的Region移动其实非常轻量级。在做Region移动的时候，保持这个Region对应的HDFS文件位置不变，只需要将Region的Meta数据分配到相关的RegionServer即可，整个Region移动的过程取决于RegionClose以及RegionOpen的耗时，这个时间一般都很短。&lt;/p&gt;
+&lt;p&gt;本文来讲讲hbase的balance实现。&lt;/p&gt;
+&lt;h3 id=&#34;balance的流程&#34;&gt;Balance的流程&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;首先通过LoadBalancer找出所有需要移动的region plan，一个region plan包括region/原始RegionServer/目的RegionServer三个属性。&lt;/li&gt;
+&lt;li&gt;unassign region , 将region从原来的RegionServer上解除绑定；&lt;/li&gt;
+&lt;li&gt;assign region ，将region绑定到目标RegionServer上;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中， unassign region的具体流程为：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;create zk closing node .  该节点在/unassigned路径下， 包含(znode状态，region名字，原始RS名，payload)这些数据。&lt;/li&gt;
+&lt;li&gt;hmaster 调用rpc服务关闭region server。region-close的流程大致为先获取region的writeLock ， 然后flush memstore, 再并发关闭该region下的所有的store file文件(注意一个region有多个store，每个store又有多个store file , 所以可以实现并发close store file) 。最后释放region的writeLock.&lt;/li&gt;
+&lt;li&gt;设置zk closing node的znode状态为closed.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;assgin region的具体流程为:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;获取到对应的Region Plan.&lt;/li&gt;
+&lt;li&gt;HMaster调用rpc服务去Region Plan对应的RegionServer上open region. 这里会先更新/unassigned节点为opening. 然后并发Load HStore，再更行zk/ROOT/META表信息，这里是为了client下次能获取到正确的路由信息， 最后更新region状态为OPEN.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;defaultloadbalancer策略&#34;&gt;DefaultLoadBalancer策略&lt;/h3&gt;
+&lt;p&gt;这种策略能够保证每个RS的regions个数基本上都相等，确切来说，假设一共有n个RS，第i个RS有Ai个region，记average=sigma(Ai)/n , 那么这种策略能够保证所有的RS的region个数都在[floor(average), ceil(average)]之间。这种策略的实现简单，应用广泛。&lt;/p&gt;
+&lt;p&gt;但是，这种策略考虑的因素比较单一， 没有考虑到每台region server的读写qps/负载压力等等，这样就可能导致出现一种情况：虽然每个region server的regions都非常接近，但是90%的请求还是落在了一台RS上，因为这台RS上的region全部都是热点数据，这样还是没有达到负载均衡的目的。
+但我觉得balance的首要目的是保证数据均衡，如果在数据均衡的情况下，负载还是集中，这时候就要考虑下rowKey的选择是否有问题了。因此, 我个人还是比较推荐采用DefaultLoadBalancer的。&lt;/p&gt;
+&lt;h3 id=&#34;stochasticloadbalancer策略&#34;&gt;StochasticLoadBalancer策略&lt;/h3&gt;
+&lt;p&gt;StochasticLoadBalancer 这种策略真的是非常复杂，简单来讲，是一种综合权衡一下6个因素的均衡策略：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每台RegionServer读请求数(ReadRequestCostFunction)&lt;/li&gt;
+&lt;li&gt;每台RegionServer写请求数(WriteRequestCostFunction)&lt;/li&gt;
+&lt;li&gt;每台RegionServer的Region个数(RegionCountSkewCostFunction)&lt;/li&gt;
+&lt;li&gt;移动代价(MoveCostFunction)&lt;/li&gt;
+&lt;li&gt;数据locality(TableSkewCostFunction)&lt;/li&gt;
+&lt;li&gt;每张表占据RegionServer中region个数上限(LocalityCostFunction)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;对于cluster的每一种region分布， 采用6个因素加权的方式算出一个代价值，这个代价值就用来评估当前region分布是否均衡，越均衡则代价值越低。然后通过成千上万次随机迭代来找到一组RegionMove的序列，使得最终的代价值严格递减。
+得到的这一组RegionMove就是HMaster最终执行的region迁移方案。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>HBaseCon West 2017 Session解读</title>
       <link>https://openinx.github.io/posts/2017-06-28-hbaseconwest2017/</link>
       <pubDate>Wed, 28 Jun 2017 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2017-06-28-hbaseconwest2017/</guid>
-      <description>HBaseCon West 2017的PPT解读如下：
-1. HBase at Xiaomi
-由小米的杨哲和张洸濠合作分享，两位是2016年新晋升的HBase Committer (ps: 小米目前总共产生了8位HBase Committer，其中2位HBase PMC，解决了数百个issue). 分享的一些亮点主要有：
-1. 0.94升级到0.98集群的一些经验。
-2. 小米内部HBase使用g1gc的一些经验。
-3. 2016年小米对社区做的一些开发和改进，包括但不限于顺序推送复制日志/优化Scan操作/开发异步客户端功能以及相关测试结果，等等。
-2. Apache HBase at DiDi (by Kang Yuan)
-主要分享了HBase在滴滴的一些实践经验，目前滴滴的HBase是基于0.98.21版本，然后将rsgroup这个功能迁移到了自己的分支，用来做业务隔离。另外，PPT中也提到通过将地理位置坐标进行GeoHash转换成一维byte存放到HBase中，可以解决查询一个点周边坐标的问题。
-3. Accordion: HBase Breathes with In-Memory Compaction (From Yahoo)
-有了InMemory-Compaction功能之后，HBase支持将Memstore直接Flush成一个ImmutableSegment，这个ImmutableSegment其实是一块内存空间，多次Memstore的Flush操作会导致产生多个ImmutableSegment，特定条件下，多个ImmtableSegment会进行In-Memory的Compaction，也就是多个ImmutableSegment完全在内存中合并成为一个大的ImmutableSegment（其中BASIC类型的InMemoryCompaction会保留所有数据，EAGER类型的InMemoryCompaction会清理冗余版本数据）。最终，这个大的ImmutableSegment还是要Flush到磁盘的，然后接着触发做磁盘上的Compaction操作。
-按照设计文档以及PPT的说明，InMemory-Compaction有以下好处：
-由于InMemoryCompaction会在内存中进行compaction， 不用频繁的Flush Memstore到Disk(Flush次数太多会造成storefile个数增长, storefile的增长会导致读性能严重下降)， 从而可以降低读操作延迟。 ImmtableSegment今后可能会和HFile的layout保持一致，这样Flush的速度将大幅提升。 对于行数据频繁更新的场景，InMemory-Compaction可以采用EAGER方式在内存中就清理掉冗余版本数据，节省了这部分数据落盘的代价。 最后，PPT测试数据也确实说明使用InMemoryCompaction后，写吞吐有较大幅度提升，读延迟有较大幅度下降。
-ps. In-memory Compaction由stack等6位成员共同完成(将在HBase2.0的release版本发布），这其中有两位美女工程师（PPT中的照片证明颜值确实很高），现在都已经是HBase的Committer了。 另外，In-memory compaction详细设计文档请参考：https://issues.apache.org/jira/browse/HBASE-13408
-4. Efficient and portable data processing with Apache Beam and HBase (By Google)
-这个演讲更多是来HBaseCon宣传下Apache Beam这个项目。 Apache Beam这个项目始于2016年2月份，近1年多的时间内就收到了来自全球178个贡献者的8600+提交，主要是希望提供一个统一的API用来同时处理Batch任务和Streaming任务，他的API后端可以接Apex/Flink/Spark/GoogleCloudDataFlow等服务，同时提供Java和Python的客户端SDK。这个东西就好比JDBC一样，提供了一个统一的借口，后端可以连接MySQL/Oracle/Postgresql/SQLServer等关系型数据库。我没理解错的话，这个东西应该是可以用来在HBase/MongoDB/HDFS/Cassandra/Kafka/BigTable/Spanner/Elasticsearch/GridFS/Hive/AMQP等(超过20种通用的存储服务)各种服务间实现数据transform。</description>
+      <description>&lt;p&gt;HBaseCon West 2017的PPT解读如下：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1. HBase at Xiaomi&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;由小米的杨哲和张洸濠合作分享，两位是2016年新晋升的HBase Committer (ps: 小米目前总共产生了8位HBase Committer，其中2位HBase PMC，解决了数百个issue).  分享的一些亮点主要有：&lt;/p&gt;
+&lt;p&gt;1. 0.94升级到0.98集群的一些经验。&lt;br&gt;
+2. 小米内部HBase使用g1gc的一些经验。&lt;br&gt;
+3. 2016年小米对社区做的一些开发和改进，包括但不限于顺序推送复制日志/优化Scan操作/开发异步客户端功能以及相关测试结果，等等。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;2. Apache HBase at DiDi (by Kang Yuan)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;主要分享了HBase在滴滴的一些实践经验，目前滴滴的HBase是基于0.98.21版本，然后将rsgroup这个功能迁移到了自己的分支，用来做业务隔离。另外，PPT中也提到通过将地理位置坐标进行&lt;a href=&#34;http://blog.jobbole.com/80633/&#34;&gt;GeoHash&lt;/a&gt;转换成一维byte存放到HBase中，可以解决查询一个点周边坐标的问题。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;3. Accordion: HBase Breathes with In-Memory Compaction (From Yahoo)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;有了InMemory-Compaction功能之后，HBase支持将Memstore直接Flush成一个ImmutableSegment，这个ImmutableSegment其实是一块内存空间，多次Memstore的Flush操作会导致产生多个ImmutableSegment，特定条件下，多个ImmtableSegment会进行In-Memory的Compaction，也就是多个ImmutableSegment完全在内存中合并成为一个大的ImmutableSegment（其中BASIC类型的InMemoryCompaction会保留所有数据，EAGER类型的InMemoryCompaction会清理冗余版本数据）。最终，这个大的ImmutableSegment还是要Flush到磁盘的，然后接着触发做磁盘上的Compaction操作。&lt;/p&gt;
+&lt;p&gt;按照设计文档以及PPT的说明，InMemory-Compaction有以下好处：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;由于InMemoryCompaction会在内存中进行compaction， 不用频繁的Flush Memstore到Disk(Flush次数太多会造成storefile个数增长, storefile的增长会导致读性能严重下降)， 从而可以降低读操作延迟。&lt;/li&gt;
+&lt;li&gt;ImmtableSegment今后可能会和HFile的layout保持一致，这样Flush的速度将大幅提升。&lt;/li&gt;
+&lt;li&gt;对于行数据频繁更新的场景，InMemory-Compaction可以采用EAGER方式在内存中就清理掉冗余版本数据，节省了这部分数据落盘的代价。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;最后，PPT测试数据也确实说明使用InMemoryCompaction后，写吞吐有较大幅度提升，读延迟有较大幅度下降。&lt;/p&gt;
+&lt;p&gt;ps. In-memory Compaction由stack等6位成员共同完成(将在HBase2.0的release版本发布），这其中有两位美女工程师（PPT中的照片证明颜值确实很高），现在都已经是HBase的Committer了。
+另外，In-memory compaction详细设计文档请参考：https://issues.apache.org/jira/browse/HBASE-13408&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;4. Efficient and portable data processing with Apache Beam and HBase (By Google)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这个演讲更多是来HBaseCon宣传下&lt;a href=&#34;https://beam.apache.org/&#34;&gt;Apache Beam&lt;/a&gt;这个项目。
+Apache Beam这个项目始于2016年2月份，近1年多的时间内就收到了来自全球178个贡献者的8600+提交，主要是希望提供一个统一的API用来同时处理Batch任务和Streaming任务，他的API后端可以接Apex/Flink/Spark/GoogleCloudDataFlow等服务，同时提供Java和Python的客户端SDK。这个东西就好比JDBC一样，提供了一个统一的借口，后端可以连接MySQL/Oracle/Postgresql/SQLServer等关系型数据库。我没理解错的话，这个东西应该是可以用来在HBase/MongoDB/HDFS/Cassandra/Kafka/BigTable/Spanner/Elasticsearch/GridFS/Hive/AMQP等(超过20种通用的存储服务)各种服务间实现数据transform。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>HBase回放Hlog顺序不一致的问题</title>
       <link>https://openinx.github.io/posts/2016-06-13-hbase-replicate-hlog/</link>
       <pubDate>Mon, 13 Jun 2016 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2016-06-13-hbase-replicate-hlog/</guid>
-      <description>在HBase的主从复制集群中, 如下图左所示，Region-Server-X以及Region-Server-Y是master集群中的两个Region-Server。正常情况下， 对Region-A的写入会在Region-Server-X上append log 到Hlog-X，然后Region-Server-X会异步地将该部分Hlog批量地应用(apply)到slave-cluster中。 此时，若Region-Server-X发生了宕机，那么Region-A会被Region-Server-Y托管，之后业务开始写Region-A导致append log到Hlog-Y日志， 同时 Region-Server-Y会新开一个线程去执行Hlog-X的replay任务，这样就会出现Region-A的Hlog-X以及Hlog-Y同时写入slave-cluster的情况出现。也就是说, Region-A的Hlog在slave cluster中的回放顺序错乱。
-另外，Region Move也会产生类似的问题，即两个Region Server并发回放Hlog导致回放顺序错乱。
-当Region-A的Hlog日志回放顺序错乱时，会导致主从集群最终数据不一致的问题：在master cluster上，先执行put操作，然后执行delete操作（delete操作是为了删除put的记录），在slave cluster中回放的顺序可能变成先执行delete 操作， 再执行put操作。如果在delete操作之后put操作之前，slave cluster的region-server 做了一次major compaction， 那么会导致出现put的数据没有被删除的情况。
-另外，日志回放数据错乱还可能会导致slave-cluster数据处于一个从未在maser-cluster上出现过的状态。
-该问题现在依然存在于hbase的系统中，社区也对此进行过多次讨论，但现在依然没有解决。下面简单阐述小米HBase团队提出的一种解决思路:
-把Region-A 从Region-Server-X上move 到Region-Server-Y，让Region-Server-Y托管Region-A。此时Region-A可读可写，但Region-A产生的Hlog-Y并不会立刻推送到slave-cluster上； 某个Region-Server将Hlog-X中的Region-A的日志推送到slave-cluster； 等待Hlog-X中Region-A的日志全部回放到slave-cluster之后，Region-Server-Y开始推送HLog-Y日志到slave-cluster上。 这里，还需要考虑一种比较极端的情况。如下图所示，有X , Y , Z 三个Region-Server, 其中X负责A/B/C 3个region, Y负责D/E 2 个region, Z 负责F 1个region。若此时X发生crash， A/B 2个region被迁往Z，C这个region被迁往Y，之后Y开始接收Region-C的读写请求，在C写了一小段数据之后，Y这个Region-Server又发生了宕机，于是D/E/C 3个region全部都被迁移到Z。
-对于Region-C而言，为了保证Hlog推送到slave-cluster严格有序，必须先推送Hlog-X中的日志，然后再推送Hlog-Y中的日志，最后推送Hlog-Z的日志。对于Region-Server宕机的这种情况而言，由于宕机的Hlog并不会增长，因此依次回放Hlog-X/Hlog-Y中所有的日志即可；但对于Region迁移这种情况（仍以上图为例，假设Region-C从X迁移到Y），Region-Sever-X的Hlog-X会不断增长，因此在Region-Server-Y托管Region-C时需要记录下Region-C在Hlog-X中的MaxSequenceId，当回放的HLog-X的seqId&amp;gt;=MaxSequenceId时，就可以开始回放Hlog-Y的日志了。
-因此，为了统一处理，无论region failover 还是region move，需要做以下记录：
-Y从X上托管Region-C时，记录Hlog-X的MaxSequenceId到HBase的meta表中； 在Z从Y上托管Region-C时，记录Hlog-Y的MaxSequenceId到HBase的meta表中。 &amp;hellip;&amp;hellip; 极端情况下，一个Region在多个Region-Server之间做多次迁移，会形成一条MaxSequenceId链表，为了保证改Region的Hlog回放顺序严格一致，必须依序回放各个Region-Server对应的Hlog，直到该段Hlog回放到对应的MaxSequenceId，接着回放下一段hlog。这样就能保证HLog在Region Move/Region Server Failover时，Region的回放顺序严格一致了。
-目前该方案的设计方案已经发到社区了，小米HBASE团队也将对此进行修复。对该问题的更多相关讨论可以参考HBASE-9465。
-总结 本文介绍了一种保证Hlog回放顺序严格一致的方案，可以解决master-cluster和slave-cluster数据不一致的问题。该方案可能会导致region在迁移过程中master-cluster和slave-cluster复制延迟增大（新方案必须严格等待上一段hlog回放，才能回放下一段hlog），整个过程相当于牺牲了主备集群replication的及时性，换来主从集群间数据最终一致性。
-参考资料 https://issues.apache.org/jira/browse/HBASE-9465 https://issues.apache.org/jira/browse/ACCUMULO-2931 https://issues.apache.org/jira/browse/HBASE-10275 https://hbase.apache.org/0.94/replication.html </description>
+      <description>&lt;p&gt;在HBase的主从复制集群中, 如下图左所示，Region-Server-X以及Region-Server-Y是master集群中的两个Region-Server。正常情况下， 对Region-A的写入会在Region-Server-X上append log 到Hlog-X，然后Region-Server-X会异步地将该部分Hlog批量地应用(apply)到slave-cluster中。 此时，若Region-Server-X发生了宕机，那么Region-A会被Region-Server-Y托管，之后业务开始写Region-A导致append log到Hlog-Y日志， 同时 Region-Server-Y会新开一个线程去执行Hlog-X的replay任务，这样就会出现Region-A的Hlog-X以及Hlog-Y同时写入slave-cluster的情况出现。也就是说, Region-A的Hlog在slave cluster中的回放顺序错乱。&lt;/p&gt;
+&lt;p&gt;另外，Region Move也会产生类似的问题，即两个Region Server并发回放Hlog导致回放顺序错乱。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hlog-concurrent-replay-hlog.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;当Region-A的Hlog日志回放顺序错乱时，会导致主从集群最终数据不一致的问题：在master cluster上，先执行put操作，然后执行delete操作（delete操作是为了删除put的记录），在slave cluster中回放的顺序可能变成先执行delete 操作， 再执行put操作。如果在delete操作之后put操作之前，slave cluster的region-server 做了一次major compaction， 那么会导致出现put的数据没有被删除的情况。&lt;/p&gt;
+&lt;p&gt;另外，日志回放数据错乱还可能会导致slave-cluster数据处于一个从未在maser-cluster上出现过的状态。&lt;/p&gt;
+&lt;p&gt;该问题现在依然存在于hbase的系统中，社区也对此进行过多次讨论，但现在依然没有解决。下面简单阐述小米HBase团队提出的一种解决思路:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;把Region-A 从Region-Server-X上move 到Region-Server-Y，让Region-Server-Y托管Region-A。此时Region-A可读可写，但Region-A产生的Hlog-Y并不会立刻推送到slave-cluster上；&lt;/li&gt;
+&lt;li&gt;某个Region-Server将Hlog-X中的Region-A的日志推送到slave-cluster；&lt;/li&gt;
+&lt;li&gt;等待Hlog-X中Region-A的日志全部回放到slave-cluster之后，Region-Server-Y开始推送HLog-Y日志到slave-cluster上。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;这里，还需要考虑一种比较极端的情况。如下图所示，有X , Y , Z 三个Region-Server, 其中X负责A/B/C 3个region, Y负责D/E 2 个region,  Z 负责F 1个region。若此时X发生crash， A/B 2个region被迁往Z，C这个region被迁往Y，之后Y开始接收Region-C的读写请求，在C写了一小段数据之后，Y这个Region-Server又发生了宕机，于是D/E/C 3个region全部都被迁移到Z。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-replay-log-seq.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;对于Region-C而言，为了保证Hlog推送到slave-cluster严格有序，必须先推送Hlog-X中的日志，然后再推送Hlog-Y中的日志，最后推送Hlog-Z的日志。对于Region-Server宕机的这种情况而言，由于宕机的Hlog并不会增长，因此依次回放Hlog-X/Hlog-Y中所有的日志即可；但对于Region迁移这种情况（仍以上图为例，假设Region-C从X迁移到Y），Region-Sever-X的Hlog-X会不断增长，因此在Region-Server-Y托管Region-C时需要记录下Region-C在Hlog-X中的MaxSequenceId，当回放的HLog-X的seqId&amp;gt;=MaxSequenceId时，就可以开始回放Hlog-Y的日志了。&lt;/p&gt;
+&lt;p&gt;因此，为了统一处理，无论region failover 还是region move，需要做以下记录：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Y从X上托管Region-C时，记录Hlog-X的MaxSequenceId到HBase的meta表中；&lt;/li&gt;
+&lt;li&gt;在Z从Y上托管Region-C时，记录Hlog-Y的MaxSequenceId到HBase的meta表中。&lt;/li&gt;
+&lt;li&gt;&amp;hellip;&amp;hellip;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;极端情况下，一个Region在多个Region-Server之间做多次迁移，会形成一条MaxSequenceId链表，为了保证改Region的Hlog回放顺序严格一致，必须依序回放各个Region-Server对应的Hlog，直到该段Hlog回放到对应的MaxSequenceId，接着回放下一段hlog。这样就能保证HLog在Region Move/Region Server Failover时，Region的回放顺序严格一致了。&lt;/p&gt;
+&lt;p&gt;目前该方案的设计方案已经发到社区了，小米HBASE团队也将对此进行修复。对该问题的更多相关讨论可以参考&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-9465&#34;&gt;HBASE-9465&lt;/a&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;总结&#34;&gt;总结&lt;/h3&gt;
+&lt;p&gt;本文介绍了一种保证Hlog回放顺序严格一致的方案，可以解决master-cluster和slave-cluster数据不一致的问题。该方案可能会导致region在迁移过程中master-cluster和slave-cluster复制延迟增大（新方案必须严格等待上一段hlog回放，才能回放下一段hlog），整个过程相当于牺牲了主备集群replication的及时性，换来主从集群间数据最终一致性。&lt;/p&gt;
+&lt;h3 id=&#34;参考资料&#34;&gt;参考资料&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-9465&#34;&gt;https://issues.apache.org/jira/browse/HBASE-9465&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://issues.apache.org/jira/browse/ACCUMULO-2931&#34;&gt;https://issues.apache.org/jira/browse/ACCUMULO-2931&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-10275&#34;&gt;https://issues.apache.org/jira/browse/HBASE-10275&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://hbase.apache.org/0.94/replication.html&#34;&gt;https://hbase.apache.org/0.94/replication.html&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;</description>
     </item>
-    
     <item>
       <title>TokuDB的多版本并发控制(MVCC)</title>
       <link>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</link>
       <pubDate>Sun, 13 Dec 2015 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</guid>
-      <description>本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。
-背景介绍 在传统的关系型数据库（例如Oracle, MySQL, SQLServer）中，事务可以说是研发和讨论最核心内容。而事务最核心的性质就是ACID。 其中 A表示事务的原子性，也就是组成事务的所有子任务只有两种结果： 要么随着事务的提交，所有子任务都成功执行；要么随着事务的回滚，所有子任务都撤销。 C表示一致性，也就是无论事务提交或者回滚，都不能破坏数据的一致性约束，这些一致性约束包括键值唯一约束、键值关联关系约束等。I表示隔离性，隔离性一般是针对多个并发事务而言的，也就是在同一个时间点，t1事务和t2事务读取的数据应该是隔离的，这两个事务就好像进了同一酒店的两间房间一样，各自在各自的房间里面活动，他们相互之间并不能看到各自在干嘛。D表示持久性，这个性质保证了一个事务一旦承诺用户成功提交，那么即便是后继数据库进程crash或者操作系统crash，只要磁盘数据没坏，那么下次启动数据库后，这个事务的执行结果仍然可以读取到。
-TokuDB目前完全支持事务的ACID。 从实现上看， 由于TokuDB采用的分形树作为索引，而InnoDB采用B+树作为索引结构，因而TokuDB在事务的实现上和InnoDB有很大不同。 本文主要讲讲TokuDB的事务隔离性的实现，也就是常提到的多版本并发控制(MVCC)。在InnoDB中， 设计了redo和undo两种日志，redo存放页的物理修改日志，用来保证事务的持久性； undo存放事务的逻辑修改日志，它实际存放了一条记录在多个并发事务下的多个版本，用来实现事务的隔离性(MVCC)和回滚操作。
-由于TokuDB的分形树采用消息传递的方式来做增删改更新操作，一条消息就是事务对该记录修改的一个版本，因此，在TokuDB源码实现中，并没有额外的undo-log的概念和实现，取而代之的是一条记录多条消息的管理机制。虽然一条记录多条消息的方式可以实现事务的MVCC，却无法解决事务回滚的问题，因此TokuDB额外设计了tokudb.rollback这个日志文件来做帮助实现事务回滚。
-TokuDB的事务表示 在tokudb中， 在用户执行的一个事务，具体到存储引擎层面会被拆开成许多个小事务(这种小事务记为txn)。 例如用户执行这样一个事务：
-begin; insert into hello set id = 1, value = &amp;#39;1&amp;#39;; commit; 对应到TokuDB存储引擎的redo-log中的记录为：
-xbegin &amp;#39;b&amp;#39;: lsn=236599 xid=15,0 parentxid=0,0 crc=29e4d0a1 len=53 xbegin &amp;#39;b&amp;#39;: lsn=236600 xid=15,1 parentxid=15,0 crc=282cb1a1 len=53 enq_insert &amp;#39;I&amp;#39;: lsn=236601 filenum=13 xid=15,1 key={...} value={...} crc=a42128e5 len=58 xcommit &amp;#39;C&amp;#39;: lsn=236602 xid=15,1 crc=ec9bba3d len=37 xprepare &amp;#39;P&amp;#39;: lsn=236603 xid=15,0 xa_xid={...} crc=db091de4 len=67 xcommit &amp;#39;C&amp;#39;: lsn=236604 xid=15,0 crc=ec997b3d len=37 对应的事务树如下图所示：</description>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。&lt;/p&gt;&lt;/blockquote&gt;
+&lt;h3 id=&#34;背景介绍&#34;&gt;背景介绍&lt;/h3&gt;
+&lt;p&gt;在传统的关系型数据库（例如Oracle, MySQL, SQLServer）中，事务可以说是研发和讨论最核心内容。而事务最核心的性质就是ACID。 其中 A表示事务的原子性，也就是组成事务的所有子任务只有两种结果： 要么随着事务的提交，所有子任务都成功执行；要么随着事务的回滚，所有子任务都撤销。 C表示一致性，也就是无论事务提交或者回滚，都不能破坏数据的一致性约束，这些一致性约束包括键值唯一约束、键值关联关系约束等。I表示隔离性，隔离性一般是针对多个并发事务而言的，也就是在同一个时间点，t1事务和t2事务读取的数据应该是隔离的，这两个事务就好像进了同一酒店的两间房间一样，各自在各自的房间里面活动，他们相互之间并不能看到各自在干嘛。D表示持久性，这个性质保证了一个事务一旦承诺用户成功提交，那么即便是后继数据库进程crash或者操作系统crash，只要磁盘数据没坏，那么下次启动数据库后，这个事务的执行结果仍然可以读取到。&lt;/p&gt;
+&lt;p&gt;TokuDB目前完全支持事务的ACID。 从实现上看， 由于TokuDB采用的&lt;a href=&#34;https://openinx.github.io/posts/2015-11-25-ft-index-implement/&#34;&gt;分形树&lt;/a&gt;作为索引，而InnoDB采用B+树作为索引结构，因而TokuDB在事务的实现上和InnoDB有很大不同。 本文主要讲讲TokuDB的事务隔离性的实现，也就是常提到的多版本并发控制(MVCC)。在InnoDB中， 设计了redo和undo两种日志，redo存放页的物理修改日志，用来保证事务的持久性； undo存放事务的逻辑修改日志，它实际存放了一条记录在多个并发事务下的多个版本，用来实现事务的隔离性(MVCC)和回滚操作。&lt;/p&gt;
+&lt;p&gt;由于TokuDB的分形树采用消息传递的方式来做增删改更新操作，一条消息就是事务对该记录修改的一个版本，因此，在TokuDB源码实现中，并没有额外的undo-log的概念和实现，取而代之的是一条记录多条消息的管理机制。虽然一条记录多条消息的方式可以实现事务的MVCC，却无法解决事务回滚的问题，因此TokuDB额外设计了tokudb.rollback这个日志文件来做帮助实现事务回滚。&lt;/p&gt;
+&lt;h3 id=&#34;tokudb的事务表示&#34;&gt;TokuDB的事务表示&lt;/h3&gt;
+&lt;p&gt;在tokudb中， 在用户执行的一个事务，具体到存储引擎层面会被拆开成许多个小事务(这种小事务记为txn)。 例如用户执行这样一个事务：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;begin&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;insert&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;into&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;hello&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;set&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;id&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;1&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;commit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;对应到TokuDB存储引擎的redo-log中的记录为：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;xbegin&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;          &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;b&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236599&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;parentxid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;29&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;e4d0a1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;53&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xbegin&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;          &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;b&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236600&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;parentxid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;282&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;cb1a1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;53&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;enq_insert&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;      &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;I&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236601&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;filenum&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;13&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;key&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a42128e5&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;58&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xcommit&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;         &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;C&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236602&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ec9bba3d&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;37&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xprepare&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;P&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236603&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xa_xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;db091de4&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;67&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xcommit&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;         &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;C&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236604&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ec997b3d&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;37&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;对应的事务树如下图所示：&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>TokuDB的索引结构：分形树的实现</title>
       <link>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</link>
       <pubDate>Wed, 25 Nov 2015 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</guid>
-      <description>本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query, Insert/Delete/Update操作, 并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。
-分形树简介 分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的B+树)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。
-工业界实现分形树最重要的产品就是Tokutek公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在Github上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为TokuDB， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为TokuMX。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。
-本文主要讨论的是TokuDB的ft-index。 ft-index相比B+树的几个重要特点有：
-从理论复杂度和测试性能两个角度上看， ft-index的Insert/Delete/Update操作性能优于B+树。 但是读操作性能低于B+树。 ft-index采用更大的索引页和数据页（ft-index默认为4M, InnoDB默认为16K）， 这使得ft-index的数据页和索引页的压缩比更高。也就是说，在打开索引页和数据页压缩的情况下，插入等量的数据， ft-index占用的存储空间更少。 ft-index支持在线修改DDL (Hot Schema Change)。 简单来讲，就是在做DDL操作的同时(例如添加索引)，用户依然可以执行写入操作， 这个特点是ft-index树形结构天然支持的。 由于篇幅限制，本文并不对Hot Schema Change的实现做具体描述。 此外， ft-index还支持事务(ACID)以及事务的MVCC(Multiple Version Cocurrency Control 多版本并发控制)， 支持崩溃恢复。
-正因为上述特点， Percona公司宣称TokuDB一方面带给客户极大的性能提升， 另一方面还降低了客户的存储使用成本。
-ft-index的磁盘存储结构 ft-index的索引结构图如下(在这里为了方便描述和理解，我对ft-index的二进制存储做了一定程度简化和抽象， 具体的二进制存储格式可以参考我的博客)：
-在下图中， 灰色区域表示ft-index分形树的一个页，绿色区域表示一个键值，两格绿色区域之间表示一个儿子指针。 BlockNum表示儿子指针指向的页的偏移量。Fanout表示分形树的扇出，也就是儿子指针的个数。 NodeSize表示一个页占用的字节数。NonLeafNode表示当前页是一个非叶子节点，LeafNode表示当前页是一个叶子节点，叶子节点是最底层的存放Key-value键值对的节点， 非叶子节点不存放value。 Heigth表示树的高度， 根节点的高度为3， 根节点下一层节点的高度为2， 最底层叶子节点的高度为1。Depth表示树的深度，根节点的深度为0， 根节点的下一层节点深度为1。
-分形树的树形结构非常类似于B+树, 它的树形结构由若干个节点组成（我们称之为Node或者Block，在InnoDB中，我们称之为Page或者页）。 每个节点由一组有序的键值组成。假设一个节点的键值序列为[3, 8], 那么这个键值将(-00, +00)整个区间划分为(-00, 3), [3, 8), [8, +00) 这样3个区间， 每一个区间就对应着一个儿子指针（Child指针）。 在B+树中， Child指针一般指向一个页， 而在分形树中，每一个Child指针除了需要指向一个Node的地址(BlockNum)之外，还会带有一个Message Buffer (msg_buffer)， 这个Message Buffer 是一个先进先出(FIFO)的队列，用来存放Insert/Delete/Update/HotSchemaChange这样的更新操作。</description>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query,  Insert/Delete/Update操作,  并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。&lt;/p&gt;&lt;/blockquote&gt;
+&lt;h3 id=&#34;分形树简介&#34;&gt;分形树简介&lt;/h3&gt;
+&lt;p&gt;分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的&lt;a href=&#34;https://en.wikipedia.org/wiki/B%2B_tree&#34;&gt;B+树&lt;/a&gt;)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。&lt;/p&gt;
+&lt;p&gt;工业界实现分形树最重要的产品就是&lt;a href=&#34;https://github.com/Tokutek&#34;&gt;Tokutek&lt;/a&gt;公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在&lt;a href=&#34;https://github.com/percona/PerconaFT&#34;&gt;Github&lt;/a&gt;上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为&lt;a href=&#34;https://github.com/percona/tokudb-engine&#34;&gt;TokuDB&lt;/a&gt;， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为&lt;a href=&#34;https://github.com/Tokutek/mongo&#34;&gt;TokuMX&lt;/a&gt;。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。&lt;/p&gt;
+&lt;p&gt;本文主要讨论的是TokuDB的ft-index。 ft-index相比B+树的几个重要特点有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;从理论复杂度和测试性能两个角度上看， ft-index的Insert/Delete/Update操作性能优于B+树。  但是读操作性能低于B+树。&lt;/li&gt;
+&lt;li&gt;ft-index采用更大的索引页和数据页（ft-index默认为4M, InnoDB默认为16K）， 这使得ft-index的数据页和索引页的压缩比更高。也就是说，在打开索引页和数据页压缩的情况下，插入等量的数据， ft-index占用的存储空间更少。&lt;/li&gt;
+&lt;li&gt;ft-index支持在线修改DDL (Hot Schema Change)。 简单来讲，就是在做DDL操作的同时(例如添加索引)，用户依然可以执行写入操作， 这个特点是ft-index树形结构天然支持的。 由于篇幅限制，本文并不对Hot Schema Change的实现做具体描述。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;此外， ft-index还支持事务(ACID)以及事务的MVCC(Multiple Version Cocurrency Control 多版本并发控制)， 支持崩溃恢复。&lt;/p&gt;
+&lt;p&gt;正因为上述特点，  Percona公司宣称TokuDB一方面带给客户极大的性能提升， 另一方面还降低了客户的存储使用成本。&lt;/p&gt;
+&lt;h3 id=&#34;ft-index的磁盘存储结构&#34;&gt;ft-index的磁盘存储结构&lt;/h3&gt;
+&lt;p&gt;ft-index的索引结构图如下(在这里为了方便描述和理解，我对ft-index的二进制存储做了一定程度简化和抽象， 具体的二进制存储格式可以参考&lt;a href=&#34;http://openinx.github.io/2015/12/02/ft-layout/&#34;&gt;我的博客&lt;/a&gt;)：&lt;/p&gt;
+&lt;p&gt;在下图中， 灰色区域表示ft-index分形树的一个页，绿色区域表示一个键值，两格绿色区域之间表示一个儿子指针。 BlockNum表示儿子指针指向的页的偏移量。Fanout表示分形树的扇出，也就是儿子指针的个数。 NodeSize表示一个页占用的字节数。NonLeafNode表示当前页是一个非叶子节点，LeafNode表示当前页是一个叶子节点，叶子节点是最底层的存放Key-value键值对的节点， 非叶子节点不存放value。 Heigth表示树的高度， 根节点的高度为3， 根节点下一层节点的高度为2， 最底层叶子节点的高度为1。Depth表示树的深度，根节点的深度为0， 根节点的下一层节点深度为1。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/tokudb/ft-index-tree-structure.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;分形树的树形结构非常类似于B+树, 它的树形结构由若干个节点组成（我们称之为Node或者Block，在InnoDB中，我们称之为Page或者页）。 每个节点由一组有序的键值组成。假设一个节点的键值序列为[3, 8],  那么这个键值将(-00, +00)整个区间划分为(-00, 3), [3, 8), [8, +00) 这样3个区间， 每一个区间就对应着一个儿子指针（Child指针）。 在B+树中， Child指针一般指向一个页， 而在分形树中，每一个Child指针除了需要指向一个Node的地址(BlockNum)之外，还会带有一个Message Buffer (msg_buffer)， 这个Message Buffer 是一个先进先出(FIFO)的队列，用来存放Insert/Delete/Update/HotSchemaChange这样的更新操作。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Vitess解析</title>
       <link>https://openinx.github.io/posts/2015-02-02-vitess-analysis/</link>
       <pubDate>Mon, 02 Feb 2015 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2015-02-02-vitess-analysis/</guid>
-      <description>在线版本： PPT
-这是我在公司内部做的一次有关Vitess的技术分享, 要点有：
-vitess提供的功能模块／特性／系统架构 vitess的sharding方式 vitess支持的SQL语法集 vitess resharding的实现原理 vitess 数据备份原理 vitess 对比传统关系型数据库及NoSQL的优点和缺点 小插曲
-为了尝试使用markdown制作在线的PPT， 我尝试了一些方案。最终选在了remarkjs来制作在线版本的ppt，原因是:
-可以实现ppt文件的版本控制。这样在git中可以清晰的看到我的修改的增量。 remarkjs简单，只需要一个文件。 我尝试其他工具时，比如landslide， 会生成一堆文件，非常繁琐。 可以使用markdown语法编辑。 </description>
+      <description>&lt;p&gt;在线版本： &lt;a href=&#34;https://openinx.github.io/ppt/vitess-notes.html&#34;&gt;PPT&lt;/a&gt;&lt;br&gt;
+这是我在公司内部做的一次有关Vitess的技术分享, 要点有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;vitess提供的功能模块／特性／系统架构&lt;/li&gt;
+&lt;li&gt;vitess的sharding方式&lt;/li&gt;
+&lt;li&gt;vitess支持的SQL语法集&lt;/li&gt;
+&lt;li&gt;vitess resharding的实现原理&lt;/li&gt;
+&lt;li&gt;vitess 数据备份原理&lt;/li&gt;
+&lt;li&gt;vitess 对比传统关系型数据库及NoSQL的优点和缺点&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;小插曲&lt;/p&gt;&lt;/blockquote&gt;
+&lt;p&gt;为了尝试使用markdown制作在线的PPT， 我尝试了一些方案。最终选在了&lt;a href=&#34;http://remarkjs.com/&#34;&gt;remarkjs&lt;/a&gt;来制作在线版本的ppt，原因是:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;可以实现ppt文件的版本控制。这样在git中可以清晰的看到我的修改的增量。&lt;/li&gt;
+&lt;li&gt;remarkjs简单，只需要一个文件。 我尝试其他工具时，比如landslide， 会生成一堆文件，非常繁琐。&lt;/li&gt;
+&lt;li&gt;可以使用markdown语法编辑。&lt;/li&gt;
+&lt;/ul&gt;</description>
     </item>
-    
     <item>
       <title>Google2015校招笔试 Round B</title>
       <link>https://openinx.github.io/posts/2014-09-16-google-apac-2015-test-round-b/</link>
       <pubDate>Tue, 16 Sep 2014 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2014-09-16-google-apac-2015-test-round-b/</guid>
-      <description>昨天做了下Google在线校招笔试，算法一天不做题，水平就擦擦往下掉。
-Poblem A. Password Attacker 描述 问由N个不同字符组成的长度为M的密码串有多少个？ 其中对每个密码串所有的N个不同字符都必须出现过.
-答案1 Brute Force 下面方程的每一组解作全排列之后的所有计数累加，就是答案。假设有一组解为X1,&amp;hellip;,Xn,那么该组解的排列之后有 M!/(X1! * X2! * &amp;hellip; * Xn!)，所有解累加即答案。
-sigma(Xi) = M , Xi &amp;gt;= 1 且 1&amp;lt;=i&amp;lt;=N M&amp;lt;=15的小数据可以通过DFS过掉，但是M&amp;lt;=100的大数据无法过掉。
-答案2 DP dp[i,j]表示从N中字符中选择j种不同字符组成的长度为i的密码串的个数。 那么所求答案为dp[M, N]. 递推式为:
-dp[0, 0] = 1 dp[0, i] = 0 ( 1&amp;lt;=i&amp;lt;=M ) dp[i,j] = dp[i-1, j] * j + dp[i-1, j-1] * (n - (j-1)) 其中dp[i-1,j-1] * (n - j + 1) 代表前面i-1个密码串只用了j-1个字符，那么第i个密码可以从剩余的n-(j-1)个字符总任选一个。
-答案3 第二类stirling数 第二类stirling数的意义是: 将n个不同的元素分成k个等价类, 记为S(n,k)， 递推式为:</description>
+      <description>&lt;p&gt;昨天做了下Google在线校招笔试，算法一天不做题，水平就擦擦往下掉。&lt;/p&gt;
+&lt;h3 id=&#34;poblem-a-password-attacker&#34;&gt;Poblem A. Password Attacker&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;描述&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;问由N个不同字符组成的长度为M的密码串有多少个？ 其中对每个密码串所有的N个不同字符都必须出现过.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;答案1 Brute Force&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;下面方程的每一组解作全排列之后的所有计数累加，就是答案。假设有一组解为X1,&amp;hellip;,Xn,那么该组解的排列之后有 M!/(X1! * X2! * &amp;hellip; * Xn!)，所有解累加即答案。&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;sigma(Xi) = M , Xi &amp;gt;= 1 且 1&amp;lt;=i&amp;lt;=N
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;M&amp;lt;=15的小数据可以通过DFS过掉，但是M&amp;lt;=100的大数据无法过掉。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;答案2 DP&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;dp[i,j]表示从N中字符中选择j种不同字符组成的长度为i的密码串的个数。 那么所求答案为dp[M, N]. 递推式为:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;dp[0, 0] = 1
+dp[0, i] = 0 ( 1&amp;lt;=i&amp;lt;=M )
+dp[i,j] = dp[i-1, j] * j + dp[i-1, j-1] * (n - (j-1))
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;其中dp[i-1,j-1] * (n - j + 1) 代表前面i-1个密码串只用了j-1个字符，那么第i个密码可以从剩余的n-(j-1)个字符总任选一个。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;答案3 &lt;a href=&#34;http://en.wikipedia.org/wiki/Stirling_numbers_of_the_second_kind&#34;&gt;第二类stirling数&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;第二类stirling数的意义是: 将n个不同的元素分成k个等价类, 记为S(n,k)， 递推式为:&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>LevelDB Compaction原理</title>
       <link>https://openinx.github.io/posts/2014-08-17-leveldb-compaction/</link>
       <pubDate>Tue, 16 Sep 2014 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2014-08-17-leveldb-compaction/</guid>
-      <description>leveldb基本约束 在默认options下，leveldb的一些基本约束:
-leveldb的level有0,1,2,3,4,5,6共7个取值; 第0层的sstable在4M左右; 第i(i&amp;gt;0)层的sstable每个sstable最大空间不超过2M; 第0层的sstable理想的情况是4个，尽量控制在8个以内，最大值不超过12; 第i(i&amp;gt;0)层的所有sstable所占存储空间之和控制在10^i M左右;
-这里说的_控制_不是指严格控制，而是总体上大致控制; Compaction定义 minor compaction
-从内存中拿出一个immtable，直接dump成sstable文件，然后根据_一定的策略_放到第i(i&amp;gt;=0)层。记_策略函数_为 PickLevelForMemTableOutput(). majar compaction
-从第i(i&amp;gt;=0)层按照_估价函数_取出一个或多个sstable,这些sstable集合记为up(i)集合。找出第i+1层与up(i)集合有overlap的sstable，记为down(i)集合。将up(i),down(i)两个集合的所有sstable做多路归并排序之后，导出的sstable全部放在i+1层。这个过程称为majar compaction. 记计算up(i)集合的估价函数为PickCompaction(i). Minor Compaction触发的条件 以下几个条件同时满足时，才会触发Minor Compaction:
-在调用put/delete API时，发现memtable的使用空间超过4M了； 当前的immtable已经被dump出去成sstable. 也就是immtable=NULL
-在上面的两个条件同时满足的情况下，会阻塞写线程，把memtable移到immtable。然后新起一个memtable，让写操作写到这个memtable里。最后将imm放到后台线程去做compaction. Majar Compaction触发的条件 以下任一条件满足时，都会触发Major Compaction:
-调用CompactRange这个API，手动触发compaction; 调用Get这个API的过程中，发现seek的第一个sstable的AllowedSeek消耗完了; 第0层的sstable超过8个; 第i(i&amp;gt;0)层的所有sstable的占用空间超过10^i M; 其中第4点一般是在第i层做了一次compaction之后，发现i+1层的不满足_leveldb基本约束5_了，导致再做一次compaction.
-Minor Compaction流程 1. sstable = MemtableDumpToSSTable(immtable); 2. i = PickLevelForMemTableOutput(sstable); 3. place SSTable to level i; 3. edit= getVersionEdit(); 4. updateVersionSet(); 其中层次选择函数PickLevelForMemTableOutput()如下：
-int PickLevelForMemTableOutput(sst){ if( (sst overlap with Level[0]) OR (sst overlap with level[1])) return 0; else{ overlapBytes := calculateOverlapBytes(sst, level[2]); if( overlapBytes &amp;gt; 20M ) return 0 ; else return 1 ; } } Majar Compaction流程 MajarCompaction() c, i := PickCompaction(); // i is level if( up(i).</description>
+      <description>&lt;h3 id=&#34;leveldb基本约束&#34;&gt;leveldb基本约束&lt;/h3&gt;
+&lt;p&gt;在默认options下，leveldb的一些基本约束:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;leveldb的level有0,1,2,3,4,5,6共7个取值;&lt;/li&gt;
+&lt;li&gt;第0层的sstable在4M左右;&lt;/li&gt;
+&lt;li&gt;第i(i&amp;gt;0)层的sstable每个sstable最大空间不超过2M;&lt;/li&gt;
+&lt;li&gt;第0层的sstable理想的情况是4个，尽量控制在8个以内，最大值不超过12;&lt;/li&gt;
+&lt;li&gt;第i(i&amp;gt;0)层的所有sstable所占存储空间之和控制在&lt;code&gt;10^i M&lt;/code&gt;左右;&lt;br&gt;
+这里说的_控制_不是指严格控制，而是总体上大致控制;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;compaction定义&#34;&gt;Compaction定义&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;minor compaction&lt;br&gt;
+从内存中拿出一个immtable，直接dump成sstable文件，然后根据_一定的策略_放到第i(i&amp;gt;=0)层。记_策略函数_为 PickLevelForMemTableOutput().&lt;/li&gt;
+&lt;li&gt;majar compaction&lt;br&gt;
+从第i(i&amp;gt;=0)层按照_估价函数_取出一个或多个sstable,这些sstable集合记为up(i)集合。找出第i+1层与up(i)集合有overlap的sstable，记为down(i)集合。将up(i),down(i)两个集合的所有sstable做多路归并排序之后，导出的sstable全部放在i+1层。这个过程称为majar compaction. 记计算up(i)集合的估价函数为PickCompaction(i).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;minor-compaction触发的条件&#34;&gt;Minor Compaction触发的条件&lt;/h3&gt;
+&lt;p&gt;以下几个条件同时满足时，才会触发Minor Compaction:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;在调用put/delete API时，发现memtable的使用空间超过4M了；&lt;/li&gt;
+&lt;li&gt;当前的immtable已经被dump出去成sstable. 也就是immtable=NULL&lt;br&gt;
+在上面的两个条件同时满足的情况下，会阻塞写线程，把memtable移到immtable。然后新起一个memtable，让写操作写到这个memtable里。最后将imm放到后台线程去做compaction.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;majar-compaction触发的条件&#34;&gt;Majar Compaction触发的条件&lt;/h3&gt;
+&lt;p&gt;以下任一条件满足时，都会触发Major Compaction:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;调用CompactRange这个API，手动触发compaction;&lt;/li&gt;
+&lt;li&gt;调用Get这个API的过程中，发现seek的第一个sstable的AllowedSeek消耗完了;&lt;/li&gt;
+&lt;li&gt;第0层的sstable超过8个;&lt;/li&gt;
+&lt;li&gt;第i(i&amp;gt;0)层的所有sstable的占用空间超过&lt;code&gt;10^i M&lt;/code&gt;;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;其中第4点一般是在第i层做了一次compaction之后，发现i+1层的不满足_leveldb基本约束5_了，导致再做一次compaction.&lt;/p&gt;
+&lt;h3 id=&#34;minor-compaction流程&#34;&gt;Minor Compaction流程&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;1.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sstable&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;MemtableDumpToSSTable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;immtable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;2.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PickLevelForMemTableOutput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sstable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;3.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;place&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;SSTable&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;3.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;edit&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;getVersionEdit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;4.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;updateVersionSet&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;其中层次选择函数&lt;code&gt;PickLevelForMemTableOutput()&lt;/code&gt;如下：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;PickLevelForMemTableOutput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlap&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;with&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;])&lt;/span&gt;  &lt;span class=&#34;n&#34;&gt;OR&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlap&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;with&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]))&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;else&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nl&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;calculateOverlapBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;           &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;else&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;           &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;majar-compaction流程&#34;&gt;Majar Compaction流程&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;MajarCompaction()&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;c&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PickCompaction&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// i is level
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;==&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;  &lt;span class=&#34;n&#34;&gt;AND&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;down&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;==&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;  &lt;span class=&#34;c1&#34;&gt;// down(i) is empty set.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;   &lt;span class=&#34;nl&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;calculateOverlapBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;n&#34;&gt;Just&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;place&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;DoCompactionWork&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;  &lt;span class=&#34;c1&#34;&gt;// 每次合并的数据量在26M左右。
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;edit&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;updateEdit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;updateVersionSet&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;edit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;DoCompactionWork(up(i), down(i))&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nl&#34;&gt;iter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;MergeIterator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;down&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;));&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nl&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;NewSStable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;while&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;iter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Next&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Add&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;iter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;bytesSize&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;OR&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;calculateOverlapBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;])&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       &lt;span class=&#34;n&#34;&gt;Place&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       &lt;span class=&#34;nl&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;NewSSTable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;Place&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;why-compaction&#34;&gt;Why Compaction?&lt;/h3&gt;
+&lt;p&gt;&lt;code&gt;miniorCompatcion()&lt;/code&gt;与&lt;code&gt;majarCompaction()&lt;/code&gt;其实在维护一个约束： &lt;em&gt;参与compaction的数据来量控制在25M～26M左右&lt;/em&gt;。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Leetcode 151总结</title>
       <link>https://openinx.github.io/posts/2014-07-20-leetcode-151-finished/</link>
       <pubDate>Sun, 20 Jul 2014 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2014-07-20-leetcode-151-finished/</guid>
-      <description>刷了若干天leetcode, 总算弄完了。代码在这里。
-Reverse Words in a String 模拟 字符串
-Evaluate Reverse Polish Notation 模拟 后缀表达式求值
-Max Points on a Line 平面给出N个点，找一个直线，使得经过的点数最多。枚举每个点，以此为原点坐标，求出相对原点坐标，然后计算y/x，用hash表计数求出最大的重复值。O(N^2)
-Sort List QuickSort和MergeSort链表版本. O(NlogN) 值得注意的情况是所有元素都相同时，假设qsort分段从左到右的话，qsort会退化O(N^2).
-Insertion Sort List 插入排序链表实现. O(N^2)
-LRU Cache LRU-Cache算法。最有复杂度保证每次get,set操作都为O(1). 双向链表+Hash。 用C++10的STL的LIST和MAP的GET，SET复杂度O(logN)
-Binary Tree Postorder Traversal 智商着急，写个栈模拟后序遍历都卡半天。 网上有很简洁的写法。
-void postOrderTraversalIterativeTwoStacks(BinaryTree *root) { if (!root) return; stack&amp;lt;BinaryTree*&amp;gt; s; stack&amp;lt;BinaryTree*&amp;gt; output; s.push(root); while (!s.empty()) { BinaryTree *curr = s.top(); output.push(curr); s.pop(); if (curr-&amp;gt;left) s.push(curr-&amp;gt;left); if (curr-&amp;gt;right) s.push(curr-&amp;gt;right); } while (!</description>
+      <description>&lt;p&gt;刷了若干天leetcode, 总算弄完了。代码在&lt;a href=&#34;https://github.com/openinx/algorithm-solution/tree/master/leetcode&#34;&gt;这里&lt;/a&gt;。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/reverse-words-in-a-string/&#34;&gt;Reverse Words in a String&lt;/a&gt;
+模拟 字符串&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/evaluate-reverse-polish-notation/&#34;&gt;Evaluate Reverse Polish Notation&lt;/a&gt;
+模拟 后缀表达式求值&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/max-points-on-a-line/&#34;&gt;Max Points on a Line&lt;/a&gt;
+平面给出N个点，找一个直线，使得经过的点数最多。枚举每个点，以此为原点坐标，求出相对原点坐标，然后计算y/x，用hash表计数求出最大的重复值。O(N^2)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/sort-list/&#34;&gt;Sort List&lt;/a&gt;
+QuickSort和MergeSort链表版本. O(NlogN) 值得注意的情况是所有元素都相同时，假设qsort分段从左到右的话，qsort会退化O(N^2).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/insertion-sort-list/&#34;&gt;Insertion Sort List &lt;/a&gt;
+插入排序链表实现. O(N^2)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/lru-cache/&#34;&gt;LRU Cache &lt;/a&gt;
+LRU-Cache算法。最有复杂度保证每次get,set操作都为O(1). 双向链表+Hash。 用C++10的STL的LIST和MAP的GET，SET复杂度O(logN)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/binary-tree-postorder-traversal/&#34;&gt;Binary Tree Postorder Traversal &lt;/a&gt;
+智商着急，写个栈模拟后序遍历都卡半天。 网上有很简洁的写法。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;postOrderTraversalIterativeTwoStacks&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryTree&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;root&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;!&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;root&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;n&#34;&gt;stack&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryTree&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;s&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;n&#34;&gt;stack&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryTree&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;*&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;output&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;n&#34;&gt;s&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;push&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;root&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;k&#34;&gt;while&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;!&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;s&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;empty&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;())&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;BinaryTree&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;curr&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;s&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;top&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;output&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;push&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;curr&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;s&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;pop&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;curr&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;left&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;n&#34;&gt;s&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;push&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;curr&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;left&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;curr&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;right&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;n&#34;&gt;s&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;push&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;curr&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;right&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;k&#34;&gt;while&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;!&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;output&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;empty&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;())&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;cout&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;output&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;top&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;data&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;s&#34;&gt;&amp;#34; &amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;output&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;pop&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;  &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/binary-tree-preorder-traversal/&#34;&gt;Binary Tree Preorder Traversal&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;https://oj.leetcode.com/problems/reorder-list/&#34;&gt;Reorder List&lt;/a&gt;
+翻转后半段链表，然后间隔一个拼接。O(N)&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Zookeeper的客户端Kazoo</title>
       <link>https://openinx.github.io/posts/2014-06-07-learning-from-kazoo/</link>
       <pubDate>Sat, 07 Jun 2014 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2014-06-07-learning-from-kazoo/</guid>
-      <description>Zookeeper自然不用我多讲了，一个分布式协调工具。有几个问题我比较好奇：
-Zookeeper如何实现watcher的异步回调？ （代码细节） Zookeeper的分布式锁如何实现？ Zookeeper的Queue, barrier等东东怎么玩的？ 看了下python版本的ZK客户端kazoo的实现，明白了个大概。
-举个简单客户端编程的例子 #!/usr/bin/python import logging from time import sleep from kazoo.client import KazooClient # print log to console logging.basicConfig(format=&amp;#39;%(levelname)s:%(message)s&amp;#39;, level=logging.DEBUG) zk = KazooClient(&amp;#39;127.0.0.1:2181&amp;#39;) zk.start() def children_callback(children): print &amp;#39;****&amp;#39; , children children = zk.get_children(&amp;#39;/zookeeper&amp;#39;, children_callback) zk.create(&amp;#39;/zookeeper/goodboy&amp;#39;) #zk.delete(&amp;#39;/zookeeper/goodboy&amp;#39;) while True: sleep(1) Kazoo实现异步的大致思路 首先有个前提：每一个Client向服务器发送Request的时候，都会带有一个xid , 每请求一次，xid加1， 同时zk服务端对单个客户端的请求处理士严格按照xid从小到大的顺序来处理并返回。 在这个条件下，客户端每次发送请求之前，先把(request, async_object, xid)这个元组放到一个pending队列里面(其中request包含了请求信息， async_object里面含有回调函数)，然后当zk服务端有任何response返回的时候，直接从pending队列中取队首元素就可以完成之前注册的回调函数。
-其实更一般的实现是这样的: 客户端发送异步请求时，都在本地存放一个(request,async_object, xid) 元组到map里面。 然后当异步返回response的时候， 根据返回的xid到map里面找出相应的(request, async_objec, xid)， 这样就可以执行回调函数了。 鉴于zookeeper处理请求的有序性，所有只用一个pending队列求能轻松搞定。
-有几个问题需要考虑：
-每个API既可以异步调用，又可以同步调用。当然同步调用可用在异步调用的基础上实现。 每个Znode上面的Watcher都要采用异步触发的方式实现。 不能阻塞主线程，因为主线程要执行上层开发者的代码逻辑。 Kazoo的实现原理（以上述代码片段为例） 给出几点解释：</description>
+      <description>&lt;p&gt;&lt;a href=&#34;http://zookeeper.apache.org/&#34;&gt;Zookeeper&lt;/a&gt;自然不用我多讲了，一个分布式协调工具。有几个问题我比较好奇：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Zookeeper如何实现watcher的异步回调？ （代码细节）&lt;/li&gt;
+&lt;li&gt;Zookeeper的分布式锁如何实现？&lt;/li&gt;
+&lt;li&gt;Zookeeper的Queue, barrier等东东怎么玩的？&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;看了下python版本的ZK客户端&lt;a href=&#34;https://github.com/python-zk/kazoo.git&#34;&gt;kazoo&lt;/a&gt;的实现，明白了个大概。&lt;/p&gt;
+&lt;h3 id=&#34;举个简单客户端编程的例子&#34;&gt;举个简单客户端编程的例子&lt;/h3&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;ch&#34;&gt;#!/usr/bin/python&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;logging&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;from&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;time&lt;/span&gt; &lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sleep&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kn&#34;&gt;from&lt;/span&gt; &lt;span class=&#34;nn&#34;&gt;kazoo.client&lt;/span&gt; &lt;span class=&#34;kn&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;KazooClient&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;# print log to console&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;logging&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;basicConfig&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;nb&#34;&gt;format&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;%(levelname)s&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;si&#34;&gt;%(message)s&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;logging&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;DEBUG&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;zk&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;KazooClient&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;127.0.0.1:2181&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;zk&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;start&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;def&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;children_callback&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;children&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;):&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;nb&#34;&gt;print&lt;/span&gt; &lt;span class=&#34;s1&#34;&gt;&amp;#39;****&amp;#39;&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;children&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;children&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;zk&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;get_children&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;/zookeeper&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;children_callback&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;zk&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;create&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;/zookeeper/goodboy&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;#zk.delete(&amp;#39;/zookeeper/goodboy&amp;#39;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;while&lt;/span&gt; &lt;span class=&#34;kc&#34;&gt;True&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sleep&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;kazoo实现异步的大致思路&#34;&gt;Kazoo实现异步的大致思路&lt;/h3&gt;
+&lt;p&gt;首先有个前提：每一个Client向服务器发送Request的时候，都会带有一个xid , 每请求一次，xid加1， 同时zk服务端对单个客户端的请求处理士严格按照xid从小到大的顺序来处理并返回。 在这个条件下，客户端每次发送请求之前，先把&lt;code&gt;(request, async_object, xid)&lt;/code&gt;这个元组放到一个pending队列里面(其中request包含了请求信息， async_object里面含有回调函数)，然后当zk服务端有任何response返回的时候，直接从pending队列中取&lt;code&gt;队首元素&lt;/code&gt;就可以完成之前注册的回调函数。&lt;/p&gt;
+&lt;p&gt;其实更一般的实现是这样的: 客户端发送异步请求时，都在本地存放一个&lt;code&gt;(request,async_object, xid)&lt;/code&gt; 元组到map里面。 然后当异步返回response的时候， 根据返回的xid到map里面找出相应的&lt;code&gt;(request, async_objec, xid)&lt;/code&gt;， 这样就可以执行回调函数了。 鉴于zookeeper处理请求的有序性，所有只用一个pending队列求能轻松搞定。&lt;/p&gt;
+&lt;p&gt;有几个问题需要考虑：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;每个API既可以异步调用，又可以同步调用。当然同步调用可用在异步调用的基础上实现。&lt;/li&gt;
+&lt;li&gt;每个Znode上面的Watcher都要采用异步触发的方式实现。&lt;/li&gt;
+&lt;li&gt;不能阻塞主线程，因为主线程要执行上层开发者的代码逻辑。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;kazoo的实现原理以上述代码片段为例&#34;&gt;Kazoo的实现原理（以上述代码片段为例）&lt;/h3&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/kazoo.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;给出几点解释：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;2步中， KazooClient的主线程通过os的pipe来做线程间通信。这个还挺有意思的。 主线程会往writepipe里面写一个字节，通知thread_1&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;3,4步中， thread1是通过 select([socket, readpipe],[],[]) 来检测到socket和readpipe上的读事件的。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当socket上有读事件，说明Zookeeper-Server有Response返回。这时候可以去读取socket上的数据。&lt;/li&gt;
+&lt;li&gt;当readpipe上有读事件时，说明主线程又往queue这个队列发送请求了。因为主线程会往queue里放请求，然后往writepipe写字节。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;5步中，thread-1将自己Client的Xid自增之后，发送给Zookeeper服务端。就返回了。thread-1自己用了一个While True去不断的探测socket和write_pip上的读事件去了。其实就干上面讲的两步。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>从第K元素看数据结构</title>
       <link>https://openinx.github.io/posts/2014-03-02-the-k-the-number-in-algorithm/</link>
       <pubDate>Sun, 02 Mar 2014 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2014-03-02-the-k-the-number-in-algorithm/</guid>
-      <description>本文涉及的源代码及文章请点击这里下载。
-这篇文章讨论的是序列中第K大或第K小元素，由于第K大元素可以转化为求第N-K+1小元素（N为序列的长度），所以，本文专注于讨论第K小元素。 本文讨论的几个问题：
-对给定整数序列，求该序列中第K小的元素。 对某一整数序列，允许动态更改序列中的数。动态查询序列中第K小元素。 给定一个整数序列和若干个区间，回答该区间内第K小元素。 对某一整数序列，允许动态更改序列中的数。动态查询序列中的第K小元素。 关键字 第K小元素 树状数组 线段树 平衡二叉树 归并树 划分树 单调队列 堆 块状表
-问题一 问题描述： 给出一个乱序整数序列a[1…n] ，求该序列中的第K小元素。（1&amp;lt;=K&amp;lt;=N）。
-算法分析： 用基于快速排序的分治算法，期望复杂度为O(N)。
-代码： int qs(int *a , int l , int r , int k){ if(l == r) return a[l] ; int i = l , j = r , x = a[(l+r)&amp;gt;&amp;gt;1] , temp ; do{ while(a[i] &amp;lt; x) ++ i ; while(a[j] &amp;gt; x) -- j ; if(i &amp;lt;= j){ temp = a[i] ; a[i] = a[j] , a[j] = temp ; i++ ; j-- ; } }while(i&amp;lt;=j) ; if(k &amp;lt;= j) return qs(a , l , j , k); if(k &amp;gt;= i) return qs(a , i , r , k); return x ; } 练习 RQNOJ 350 这题数据量比较小1≤N≤10000,1≤M≤2000 。所以计算量不会超过10^7。当然用到后面的归并树或划分树，能将复杂度降低。</description>
+      <description>&lt;p&gt;本文涉及的源代码及文章请点击&lt;a href=&#34;https://github.com/openinx/algorithm-solution/tree/master/the-kth-number-code&#34;&gt;这里&lt;/a&gt;下载。&lt;/p&gt;
+&lt;p&gt;这篇文章讨论的是序列中第K大或第K小元素，由于第K大元素可以转化为求第N-K+1小元素（N为序列的长度），所以，本文专注于讨论第K小元素。
+本文讨论的几个问题：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;对给定整数序列，求该序列中第K小的元素。&lt;/li&gt;
+&lt;li&gt;对某一整数序列，允许动态更改序列中的数。动态查询序列中第K小元素。&lt;/li&gt;
+&lt;li&gt;给定一个整数序列和若干个区间，回答该区间内第K小元素。&lt;/li&gt;
+&lt;li&gt;对某一整数序列，允许动态更改序列中的数。动态查询序列中的第K小元素。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;关键字&#34;&gt;关键字&lt;/h2&gt;
+&lt;p&gt;&lt;em&gt;第K小元素&lt;/em&gt;  &lt;em&gt;树状数组&lt;/em&gt;  &lt;em&gt;线段树&lt;/em&gt;  &lt;em&gt;平衡二叉树&lt;/em&gt;  &lt;em&gt;归并树&lt;/em&gt;  &lt;em&gt;划分树&lt;/em&gt;  &lt;em&gt;单调队列&lt;/em&gt;  &lt;em&gt;堆&lt;/em&gt;  &lt;em&gt;块状表&lt;/em&gt;&lt;/p&gt;
+&lt;h3 id=&#34;问题一&#34;&gt;问题一&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;问题描述：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;给出一个乱序整数序列a[1…n] ，求该序列中的第K小元素。（&lt;code&gt;1&amp;lt;=K&amp;lt;=N&lt;/code&gt;）。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;算法分析：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;用基于快速排序的分治算法，期望复杂度为O(N)。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;代码：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;qs&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;l&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;r&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;k&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;l&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;==&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;r&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;  &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;l&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;l&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;j&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;r&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;x&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;l&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;r&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;gt;&amp;gt;&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;temp&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;do&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;while&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;x&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;++&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;while&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;j&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;x&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;--&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;j&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;j&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;temp&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;  &lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;j&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;  &lt;span class=&#34;n&#34;&gt;a&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;j&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;temp&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;            &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;++&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;  &lt;span class=&#34;n&#34;&gt;j&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;--&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;while&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;&amp;lt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;j&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;k&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;j&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;  &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;qs&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;l&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;j&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;k&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;k&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;  &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;qs&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;r&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;k&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;x&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;练习&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&#34;http://www.rqnoj.cn/Problem_350.html&#34;&gt;RQNOJ 350&lt;/a&gt; 这题数据量比较小1≤N≤10000,1≤M≤2000 。所以计算量不会超过10^7。当然用到后面的归并树或划分树，能将复杂度降低。&lt;/p&gt;
+&lt;h3 id=&#34;问题二&#34;&gt;【问题二】&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;问题描述：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;给出一个乱序整数序列a[1&amp;hellip;n] ，有3种操作：&lt;/p&gt;
+&lt;p&gt;操作一：ADD NUM 往序列添加一个数NUM。  &lt;br&gt;
+操作二：DEL NUM 从序列中删除一个数NUM（若有多个，只删除一个）。&lt;br&gt;
+操作三：QUERY K 询问当前序列中第K小的数。&lt;/p&gt;
+&lt;p&gt;输出每次询问的数。假设操作的次数为M。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;算法分析：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这题实际上就是一边动态增删点，一边查询第K小数。这类题有两种思维方法：一是二分答案，对当前测试值mid，查询mid在当前序列中的排名rank ， 然后根据rank决定向左边还是右边继续二分。另一种是直接求第K小元素。&lt;/p&gt;
+&lt;p&gt;这个题可以用各种类型的数据结构解决，其时间复杂度和编程复杂度稍有区别：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;线段树：运用第一种思维，当添加（删除）一个数x时，相当于往线段树上添加（删除）一条(x , maxlen)（注意是闭区间）长度的线段。这样询问时，覆盖[mid , mid]区间的线段数就是比mid小的数，加上1就是rank。二分次数为log(maxlen) ，查一次mid的rank ， 复杂度为O(logN) 。所以总复杂度上界为O(M&lt;em&gt;logN&lt;/em&gt;logN) 。为方便比较，这里认为log(maxlen)等于logN。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>谈谈Redis字典的实现</title>
       <link>https://openinx.github.io/posts/2014-02-13-the-implement-of-redis-dict/</link>
       <pubDate>Thu, 13 Feb 2014 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2014-02-13-the-implement-of-redis-dict/</guid>
-      <description>Hash表（Hash Table）
-hash表实际上由size个的桶组成一个桶数组table[0&amp;hellip;size-1] 。当一个对象经过哈希之后，得到一个相应的value , 于是我们把这个对象放到桶table[ value ]中。当一个桶中有多个对象时，我们把桶中的对象组织成为一个链表。这在冲突处理上称之为拉链法。
-负载因子（load factor）
-假设一个hash表中桶的个数为 size , 存储的元素个数为used .则我们称 used / size 为负载因子loadFactor . 一般的情况下，当loadFactor&amp;lt;=1时，hash表查找的期望复杂度为O(1). 因此，每次往hash表中添加元素时，我们必须保证是在loadFactor&amp;lt;1的情况下，才能够添加。
-容量扩张（Expand）&amp;amp; 分摊转移
-当我们添加一个新元素时，一旦loadFactor大于等于1了，我们不能单纯的往hash表里边添加元素。因为添加完之后，loadFactor将大于1，这样也就不能保证查找的期望时间复杂度为常数级了。这时，我们应该对桶数组进行一次容量扩张，让size增大 。这样就能保证添加元素后 used / size 仍然小于等于1 ， 从而保证查找的期望时间复杂度为O(1).但是，如何进行容量扩张呢？ C++中的vector的容量扩张是一种好方法。于是有了如下思路 ：　Hash表中每次发现loadFactor==1时，就开辟一个原来桶数组的两倍空间（称为新桶数组），然后把原来的桶数组中元素全部转移过来到新的桶数组中。注意这里转移是需要元素一个个重新哈希到新桶中的，原因后面会讲到。
-这种方法的缺点是，容量扩张是一次完成的，期间要花很长时间一次转移hash表中的所有元素。这样在hash表中loadFactor==1时，往里边插入一个元素将会等候很长的时间。 redis中的dict.c中的设计思路是用两个hash表来进行进行扩容和转移的工作：当从第一个hash表的loadFactor=1时，如果要往字典里插入一个元素，首先为第二个hash表开辟2倍第一个hash表的容量，同时将第一个hash表的一个非空桶中元素全部转移到第二个hash表中，然后把待插入元素存储到第二个hash表里。继续往字典里插入第二个元素，又会将第一个hash表的一个非空桶中元素全部转移到第二个hash表中，然后把元素存储到第二个hash表里……直到第一个hash表为空。
-这种策略就把第一个hash表所有元素的转移分摊为多次转移，而且每次转移的期望时间复杂度为O(1)。这样就不会出现某一次往字典中插入元素要等候很长时间的情况了。
-为了更深入的理解这个过程，先看看在dict.h中的两个结构体：
-typedef struct dictht { dictEntry **table; unsigned long size; unsigned long sizemask; unsigned long used; } dictht; typedef struct dict { dictType *type; void *privdata; dictht ht[2]; int rehashidx; /* rehashing not in progress if rehashidx == -1 */ int iterators; /* number of iterators currently running */ } dict; dictht指的就是上面说的桶数组，size用来表示容量，一般为2^n ，sizemask（一般为2^n-1,二进制表示为n个1）用来对哈希值取模 , used表示hash表中存储了多少个元素。 dict表示字典，由两个桶数组组成，type是一些函数指针（哈希函数及key，value的一些处理函数）。</description>
+      <description>&lt;p&gt;&lt;strong&gt;Hash表（Hash Table）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;hash表实际上由size个的桶组成一个桶数组table[0&amp;hellip;size-1] 。当一个对象经过哈希之后，得到一个相应的value , 于是我们把这个对象放到桶table[ value ]中。当一个桶中有多个对象时，我们把桶中的对象组织成为一个链表。这在冲突处理上称之为拉链法。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;负载因子（load factor）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;假设一个hash表中桶的个数为 size , 存储的元素个数为used .则我们称 used / size 为负载因子loadFactor . 一般的情况下，当&lt;code&gt;loadFactor&amp;lt;=1&lt;/code&gt;时，hash表查找的期望复杂度为O(1). 因此，每次往hash表中添加元素时，我们必须保证是在&lt;code&gt;loadFactor&amp;lt;1&lt;/code&gt;的情况下，才能够添加。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;容量扩张（Expand）&amp;amp; 分摊转移&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;当我们添加一个新元素时，一旦loadFactor大于等于1了，我们不能单纯的往hash表里边添加元素。因为添加完之后，loadFactor将大于1，这样也就不能保证查找的期望时间复杂度为常数级了。这时，我们应该对桶数组进行一次容量扩张，让size增大 。这样就能保证添加元素后 used / size 仍然小于等于1 ， 从而保证查找的期望时间复杂度为O(1).但是，如何进行容量扩张呢？ C++中的vector的容量扩张是一种好方法。于是有了如下思路 ：　&lt;/p&gt;
+&lt;p&gt;Hash表中每次发现&lt;code&gt;loadFactor==1&lt;/code&gt;时，就开辟一个原来桶数组的两倍空间（称为新桶数组），然后把原来的桶数组中元素全部转移过来到新的桶数组中。注意这里转移是需要元素一个个重新哈希到新桶中的，原因后面会讲到。&lt;/p&gt;
+&lt;p&gt;这种方法的缺点是，容量扩张是一次完成的，期间要花很长时间一次转移hash表中的所有元素。这样在hash表中&lt;code&gt;loadFactor==1&lt;/code&gt;时，往里边插入一个元素将会等候很长的时间。
+redis中的dict.c中的设计思路是用两个hash表来进行进行扩容和转移的工作：当从第一个hash表的&lt;code&gt;loadFactor=1&lt;/code&gt;时，如果要往字典里插入一个元素，首先为第二个hash表开辟2倍第一个hash表的容量，同时将第一个hash表的一个非空桶中元素全部转移到第二个hash表中，然后把待插入元素存储到第二个hash表里。继续往字典里插入第二个元素，又会将第一个hash表的一个非空桶中元素全部转移到第二个hash表中，然后把元素存储到第二个hash表里……直到第一个hash表为空。&lt;/p&gt;
+&lt;p&gt;这种策略就把第一个hash表所有元素的转移分摊为多次转移，而且每次转移的期望时间复杂度为O(1)。这样就不会出现某一次往字典中插入元素要等候很长时间的情况了。&lt;/p&gt;
+&lt;p&gt;为了更深入的理解这个过程，先看看在dict.h中的两个结构体：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;typedef&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;struct&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;dictht&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;dictEntry&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;**&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;table&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;unsigned&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;unsigned&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sizemask&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;unsigned&lt;/span&gt; &lt;span class=&#34;kt&#34;&gt;long&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;used&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;dictht&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;typedef&lt;/span&gt; &lt;span class=&#34;k&#34;&gt;struct&lt;/span&gt; &lt;span class=&#34;nc&#34;&gt;dict&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;dictType&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;type&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;*&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;privdata&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;n&#34;&gt;dictht&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;ht&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;rehashidx&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;cm&#34;&gt;/* rehashing not in progress if rehashidx == -1 */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;iterators&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; &lt;span class=&#34;cm&#34;&gt;/* number of iterators currently running */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;dict&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;dictht指的就是上面说的桶数组，size用来表示容量，一般为2^n ，sizemask（一般为2^n-1,二进制表示为n个1）用来对哈希值取模 , used表示hash表中存储了多少个元素。
+dict表示字典，由两个桶数组组成，type是一些函数指针（哈希函数及key，value的一些处理函数）。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>平面扫描思想在ACM竞赛中的应用</title>
       <link>https://openinx.github.io/posts/2013-01-01-plane-sweep-thinking/</link>
       <pubDate>Tue, 01 Jan 2013 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2013-01-01-plane-sweep-thinking/</guid>
-      <description>摘要: 平面扫描思想在计算几何，计算机图形学，网格计算等计算机理论领域有广泛的应用。有非常多的经典算法借助平面扫描的思想极大的降低了算法时间复杂度。例如线段相交问题、平面上多矩形轮廓算法、平面多矩形求交、空间冲突检测算法、Voronoi图构造算法、平面最近点对等等。
-本文介绍了在ACM程序设计竞赛中经常用到的几个平面扫描算法。根据这些算法的作用，大致分为以下几类：
-数据统计； 几何实体位置关系的检测； 最近点对。 本文依次选取了三类算法中具有代表性的经典算法加以介绍，并有针对性的剖析了大量经典ACM算法竞赛试题，以期对ACM程序设计竞赛参赛者起到抛砖引玉的作用。 关键字 平面扫描 ; ACM大学生程序设计竞赛 ; 算法 ; 数据统计 ; 几何实体位置关系; 最近点对
-第一章：引言 ACM国际大学生程序设计竞赛(英文全称:ACM International Collegiate Programming Contest（ACM-ICPC或ICPC）是由美国计算机协会（ACM）主办的，一项旨在展示大学生创新能力、团队精神和在压力下编写程序、分析和解决问题能力的年度竞赛。经过近30多年的发展，ACM国际大学生程序设计竞赛已经发展成为最具影响力的大学生计算机竞赛。
-竞赛的历史可以上溯到1970年，当时在美国德克萨斯A&amp;amp;M大学举办了首届比赛。当时的主办方是the Alpha Chapter of the UPE Computer Science Honor Society。作为一种全新的发现和培养计算机科学顶尖学生的方式，竞赛很快得到美国和加拿大各大学的积极响应。1977年，在ACM计算机科学会议期间举办了首次总决赛，并演变成为目前的一年一届的多国参与的国际性比赛。迄今已经举办了35届。
-平面扫描思想是一种在计算几何、计算机图形学等领域经常用到的算法优化思想。由于ACM程序设计竞赛是一类对算法时间复杂度和空间复杂度要求非常高的高水平竞赛。竞赛中出现的许多的计算几何题目和高级数据结构题目都可以通过运用平面扫描的思想优化时空复杂度，使得程序能在题目给定的时间限制和空间限制下快速求出问题的解。
-平面扫描算法一般由扫描线、事件点和当前扫描线事件点集合三个部分组成。扫描线一般是一根平行于坐标轴的水平线（或垂直线）。它按照从上到下（或从左到右）的顺序，依次检测事件点，通过删除或新增事件点来维护当前扫描线事件点集合。当前扫描线事件点集合通常都是用线段树、树状数组、红黑树等平衡二叉树来维护的，特殊情况下也需要用Hash表、块状表、跳跃链表等高级数据结构来达到维护目的。通过查询当前扫描线事件点集合的相关信息，我们就可以获得问题的答案。
-正文将ACM竞赛中的扫描线算法分成三类，并依次介绍相关类型的算法。希望对参赛者的算法学习有所帮助。
-第二章：算法介绍及试题剖析 第一节：数据统计 经典问题A 平面坐标系上有N个矩形，这些矩形的四条边都平行于X轴或Y轴。每个矩形可以被其他矩形部分或者完全遮盖，所有矩形合并成区域的边界周长称为轮廓周长。例如图1中所有矩形的轮廓如图2所示：
-请设计一个算法，计算所有矩形的轮廓周长。
-输入 平面上N个矩形，第i个矩形用左下顶点坐标(Xi, Yi)和右上顶点坐标(UXi, UYi)表示。
-输出 所有矩形轮廓周长。
-算法分析 先离散化。用每个矩形的四边所在直线将二维平面切割。这样，就只要考虑AB这样的单元线段了。把组成轮廓的单元线段长度相加就是矩形轮廓周长和。假设L1, L2 &amp;hellip;, L8 各竖直线经过映射后对应于mapx1,mapx2 &amp;hellip;, mapx8。为方便描述，令mapx0=mapx1。
-这样，考虑mapx(i-1)到mapxi之间的横向单元线段属于轮廓的总长度。在[mapx(i-1), mapx(i)]之间任作一竖直线L，将所有与L相交的矩形在L上的投影线段求并后的独立不相交线段数计为count,则共有2count(mapxi - mapx(i-1))长度的横向线段为轮廓长度。
-例如，在L6和L7之间的作一条竖直线段L，与L相交的矩形有两个，它们在L上的投影分别为AB和CD，将AB和CD求并后，算出的独立不相交的线段数count=2。所以，在之间的横线单元线段属于轮廓的总长度就等于2count(L7-L6)=4*(L7-L6)。
-通过上面分析，我们已经能够计算出所有轮廓周长中平行于x轴的总长度了。当然，可以通过类似的方法求出轮廓周长中平行于y轴的总长度。但是，在竖直线从左到右扫描的过程中，我们可以通过更为简洁的方法得到轮廓周长中平行于y轴的总长度。
-考虑与L7相交的矩形在L7上的投影为[E,F]U[G,H]，与L8相交的矩形在上的投影为[I,J]，当竖直线扫描线从L7扫描到L8时，[E,F]就“露”了出来，成为竖直轮廓的一部分。这个[E,F]正好是L7上投影和L8上投影绝对值之差。如果相邻的扫描线的矩形投影分别为M1, M2 , 那么，在扫描过程中“露出”的纵向边长度为|M1-M2|。
-综上所述，所有属于轮廓周长的横向边总长度和纵向边总长度已经可以计算出来，这样横向总长度和纵向总长度相加就是轮廓周长的总长度。
-我们可以用扫描线从左到右依次扫描并更改相应状态的方式来描述这个计算过程。这里扫描线就是穿过各矩形竖直边的直线。事件点就是各矩形的竖直边，其中我们定义一个矩形的左边为插入事件，右边为删除事件。由于这里事件处理包括线段的插入和删除，所以当前扫描线事件点集合可以用一颗线段树来维护。 这颗线段树SegmentTree应该能够提供以下几种操作：</description>
+      <description>&lt;p&gt;         &lt;strong&gt;摘要&lt;/strong&gt;: 平面扫描思想在计算几何，计算机图形学，网格计算等计算机理论领域有广泛的应用。有非常多的经典算法借助平面扫描的思想极大的降低了算法时间复杂度。例如线段相交问题、平面上多矩形轮廓算法、平面多矩形求交、空间冲突检测算法、Voronoi图构造算法、平面最近点对等等。&lt;/p&gt;
+&lt;p&gt;        本文介绍了在ACM程序设计竞赛中经常用到的几个平面扫描算法。根据这些算法的作用，大致分为以下几类：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;数据统计；&lt;/li&gt;
+&lt;li&gt;几何实体位置关系的检测；&lt;/li&gt;
+&lt;li&gt;最近点对。
+本文依次选取了三类算法中具有代表性的经典算法加以介绍，并有针对性的剖析了大量经典ACM算法竞赛试题，以期对ACM程序设计竞赛参赛者起到抛砖引玉的作用。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;__关键字__&#34;&gt;&lt;strong&gt;关键字&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;平面扫描&lt;/em&gt;&lt;/strong&gt; ;   &lt;strong&gt;&lt;em&gt;ACM大学生程序设计竞赛&lt;/em&gt;&lt;/strong&gt;   ;  &lt;strong&gt;&lt;em&gt;算法&lt;/em&gt;&lt;/strong&gt;  ;  &lt;strong&gt;&lt;em&gt;数据统计&lt;/em&gt;&lt;/strong&gt;  ;    &lt;strong&gt;&lt;em&gt;几何实体位置关系&lt;/em&gt;&lt;/strong&gt;; &lt;strong&gt;&lt;em&gt;最近点对&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;h2 id=&#34;__第一章引言__&#34;&gt;&lt;strong&gt;第一章：引言&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;        ACM国际大学生程序设计竞赛(英文全称:ACM International Collegiate Programming Contest（ACM-ICPC或ICPC）是由美国计算机协会（ACM）主办的，一项旨在展示大学生创新能力、团队精神和在压力下编写程序、分析和解决问题能力的年度竞赛。经过近30多年的发展，ACM国际大学生程序设计竞赛已经发展成为最具影响力的大学生计算机竞赛。&lt;/p&gt;
+&lt;p&gt;        竞赛的历史可以上溯到1970年，当时在美国德克萨斯A&amp;amp;M大学举办了首届比赛。当时的主办方是the Alpha Chapter of the UPE Computer Science Honor Society。作为一种全新的发现和培养计算机科学顶尖学生的方式，竞赛很快得到美国和加拿大各大学的积极响应。1977年，在ACM计算机科学会议期间举办了首次总决赛，并演变成为目前的一年一届的多国参与的国际性比赛。迄今已经举办了35届。&lt;/p&gt;
+&lt;p&gt;        平面扫描思想是一种在计算几何、计算机图形学等领域经常用到的算法优化思想。由于ACM程序设计竞赛是一类对算法时间复杂度和空间复杂度要求非常高的高水平竞赛。竞赛中出现的许多的计算几何题目和高级数据结构题目都可以通过运用平面扫描的思想优化时空复杂度，使得程序能在题目给定的时间限制和空间限制下快速求出问题的解。&lt;/p&gt;
+&lt;p&gt;        平面扫描算法一般由扫描线、事件点和当前扫描线事件点集合三个部分组成。扫描线一般是一根平行于坐标轴的水平线（或垂直线）。它按照从上到下（或从左到右）的顺序，依次检测事件点，通过删除或新增事件点来维护当前扫描线事件点集合。当前扫描线事件点集合通常都是用线段树、树状数组、红黑树等平衡二叉树来维护的，特殊情况下也需要用Hash表、块状表、跳跃链表等高级数据结构来达到维护目的。通过查询当前扫描线事件点集合的相关信息，我们就可以获得问题的答案。&lt;/p&gt;
+&lt;p&gt;        正文将ACM竞赛中的扫描线算法分成三类，并依次介绍相关类型的算法。希望对参赛者的算法学习有所帮助。&lt;/p&gt;
+&lt;h2 id=&#34;__第二章算法介绍及试题剖析__&#34;&gt;&lt;strong&gt;第二章：算法介绍及试题剖析&lt;/strong&gt;&lt;/h2&gt;
+&lt;h3 id=&#34;第一节数据统计&#34;&gt;第一节：数据统计&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;经典问题A&lt;/strong&gt;   平面坐标系上有N个矩形，这些矩形的四条边都平行于X轴或Y轴。每个矩形可以被其他矩形部分或者完全遮盖，所有矩形合并成区域的边界周长称为轮廓周长。例如图1中所有矩形的轮廓如图2所示：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;Alt text&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/plane-sweep-1.jpg&#34;&gt;
+&lt;img alt=&#34;Alt text&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/plane-sweep-2.jpg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;请设计一个算法，计算所有矩形的轮廓周长。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;输入&lt;/strong&gt;  平面上N个矩形，第i个矩形用左下顶点坐标(Xi, Yi)和右上顶点坐标(UXi, UYi)表示。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;输出&lt;/strong&gt;  所有矩形轮廓周长。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;算法分析&lt;/strong&gt;  先离散化。用每个矩形的四边所在直线将二维平面切割。这样，就只要考虑AB这样的单元线段了。把组成轮廓的单元线段长度相加就是矩形轮廓周长和。假设L1, L2 &amp;hellip;, L8 各竖直线经过映射后对应于mapx1,mapx2 &amp;hellip;, mapx8。为方便描述，令mapx0=mapx1。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;Alt text&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/plane-sweep-3.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;这样，考虑mapx(i-1)到mapxi之间的横向单元线段属于轮廓的总长度。在[mapx(i-1), mapx(i)]之间任作一竖直线L，将所有与L相交的矩形在L上的投影线段求并后的独立不相交线段数计为count,则共有2&lt;em&gt;count&lt;/em&gt;(mapxi - mapx(i-1))长度的横向线段为轮廓长度。&lt;/p&gt;
+&lt;p&gt;例如，在L6和L7之间的作一条竖直线段L，与L相交的矩形有两个，它们在L上的投影分别为AB和CD，将AB和CD求并后，算出的独立不相交的线段数count=2。所以，在之间的横线单元线段属于轮廓的总长度就等于2&lt;em&gt;count&lt;/em&gt;(L7-L6)=4*(L7-L6)。&lt;/p&gt;
+&lt;p&gt;通过上面分析，我们已经能够计算出所有轮廓周长中平行于x轴的总长度了。当然，可以通过类似的方法求出轮廓周长中平行于y轴的总长度。但是，在竖直线从左到右扫描的过程中，我们可以通过更为简洁的方法得到轮廓周长中平行于y轴的总长度。&lt;/p&gt;
+&lt;p&gt;考虑与L7相交的矩形在L7上的投影为[E,F]U[G,H]，与L8相交的矩形在上的投影为[I,J]，当竖直线扫描线从L7扫描到L8时，[E,F]就“露”了出来，成为竖直轮廓的一部分。这个[E,F]正好是L7上投影和L8上投影绝对值之差。如果相邻的扫描线的矩形投影分别为M1, M2 , 那么，在扫描过程中“露出”的纵向边长度为|M1-M2|。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>我的公开分享</title>
       <link>https://openinx.github.io/posts/2012-01-01-my-share/</link>
       <pubDate>Sun, 01 Jan 2012 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2012-01-01-my-share/</guid>
-      <description>2021.01.08 Flink Forward Asia 2021 Beijing: The Best Practice of Integrating Apache Flink with Apache Iceberg 2021.04.25 Flink+Iceberg Shanghai Meetup: How Flink and Iceberg Solve the Challenges of Data Lake Ingestion 2020.12.15 Flink Forward Asia 2020 Beijing: How to Analyze CDC Data in Iceberg Data Lake Using Flink, Blog 2019.07.20 HBaseConAsia 2019 Beijing: Further GC optimization for HBase 2.x: Reading HFileBlock into offheap directly. 2018.10.18 小米内部科普HBase读路径 PDF 2018.06.18 HBaseConWest2018 美国湾区-圣何塞(San Jose)分享《HBase Practice In XiaoMi》 PPT Video 2017.</description>
+      <description>&lt;ul&gt;
+&lt;li&gt;2021.01.08 Flink Forward Asia 2021 Beijing: &lt;a href=&#34;https://openinx.github.io/ppt/The%20Best%20Practice%20of%20Integrating%20Apache%20Flink%20with%20Apache%20Iceberg.pdf&#34;&gt;The Best Practice of Integrating Apache Flink with Apache Iceberg&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2021.04.25 Flink+Iceberg Shanghai Meetup: &lt;a href=&#34;https://openinx.github.io/ppt/2021-04-25-flink-iceberg-shanghai-meetup.pdf&#34;&gt;How Flink and Iceberg Solve the Challenges of Data Lake Ingestion&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2020.12.15 Flink Forward Asia 2020 Beijing: &lt;a href=&#34;https://openinx.github.io/ppt/FlinkForwardAsia2020.pdf&#34;&gt;How to Analyze CDC Data in Iceberg Data Lake Using Flink&lt;/a&gt;, &lt;a href=&#34;https://www.alibabacloud.com/blog/how-to-analyze-cdc-data-in-iceberg-data-lake-using-flink_597838&#34;&gt;Blog&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2019.07.20 HBaseConAsia 2019 Beijing: &lt;a href=&#34;https://openinx.github.io/ppt/hbaseconasia2019.pdf&#34;&gt;Further GC optimization for HBase 2.x: Reading HFileBlock into offheap  directly.&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2018.10.18 小米内部科普HBase读路径 &lt;a href=&#34;https://openinx.github.io/ppt/hbase-read-path.pdf&#34;&gt;PDF&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2018.06.18 HBaseConWest2018 美国湾区-圣何塞(San Jose)分享《HBase Practice In XiaoMi》 &lt;a href=&#34;https://openinx.github.io/ppt/hbase-practice-at-xiaomi-hbasecon2018.pdf&#34;&gt;PPT&lt;/a&gt; &lt;a href=&#34;https://pan.baidu.com/s/10svpfoSU2hJaOqAMTQl2og&#34;&gt;Video&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2017.08.04 &lt;a href=&#34;https://www.eventbrite.com/e/hbasecon-asia-2017-tickets-34935546159&#34;&gt;HBaseConAsia2017&lt;/a&gt; 主题《&lt;a href=&#34;https://openinx.github.io/ppt/hbaseconasia2017_paper_18.pdf&#34;&gt;HBase Practice At XiaoMi&lt;/a&gt;》。&lt;/li&gt;
+&lt;li&gt;2016.03.24 公司内部分享: 《TokuDB索引结构》&lt;a href=&#34;https://openinx.github.io/ppt/tokudb-index.pptx&#34;&gt;PPTX版本&lt;/a&gt;  &lt;a href=&#34;https://openinx.github.io/ppt/tokudb-index.pdf&#34;&gt;PDF版本&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2016.04.13 公司内部分享：《LevelDB存储引擎》 &lt;a href=&#34;https://openinx.github.io/ppt/leveldb-lsm-tree.pptx&#34;&gt;PPTX版本&lt;/a&gt;  &lt;a href=&#34;https://openinx.github.io/ppt/leveldb-lsm-tree.pdf&#34;&gt;PDF版本&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2015年 &lt;a href=&#34;https://openinx.github.io/ppt/vitess.pdf&#34;&gt;Vitess解析&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2011年 湖南师范大学第三届大学生计算机程序设计竞赛命题。 &lt;a href=&#34;https://github.com/openinx/algorithm-solution/blob/master/hunnu_3th_programming_contest/ProblemAndSolution/summary/ProblemSet.pdf&#34;&gt;试题PDF&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/raw/master/hunnu_3th_programming_contest/ProblemAndSolution/summary/Tutorial.pptx&#34;&gt;解答PPT&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/tree/master/hunnu_3th_programming_contest/ProblemAndSolution&#34;&gt;参考程序&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;2011年 湖南师范大学2010年12月份月赛命题。&lt;a href=&#34;https://github.com/openinx/algorithm-solution/blob/master/hunnu_201012_acm_monthly/solution/ProblemSet.pdf&#34;&gt;试题PDF&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/raw/master/hunnu_201012_acm_monthly/solution/solution.pdf&#34;&gt;解答PPT&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/tree/master/hunnu_201012_acm_monthly/solution&#34;&gt;参考程序&lt;/a&gt;。&lt;/li&gt;
+&lt;/ul&gt;</description>
     </item>
-    
   </channel>
 </rss>

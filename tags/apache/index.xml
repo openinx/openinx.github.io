@@ -5,156 +5,185 @@
     <link>https://openinx.github.io/tags/apache/</link>
     <description>Recent content in Apache on Openinx Blog</description>
     <image>
+      <title>Openinx Blog</title>
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Fri, 06 Sep 2019 13:27:08 +0800</lastBuildDate><atom:link href="https://openinx.github.io/tags/apache/index.xml" rel="self" type="application/rss+xml" />
+    <generator>Hugo -- 0.143.1</generator>
+    <language>en</language>
+    <lastBuildDate>Fri, 06 Sep 2019 13:27:08 +0800</lastBuildDate>
+    <atom:link href="https://openinx.github.io/tags/apache/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>推荐一本我们写的书《HBase原理与实践》</title>
       <link>https://openinx.github.io/posts/2019-09-06-hbase-princple-and-practice/</link>
       <pubDate>Fri, 06 Sep 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-09-06-hbase-princple-and-practice/</guid>
-      <description>我在 Apache HBase 社区工作了一段时间后，发现有一些精力过人的大咖：十年如一日持续不断贡献的Michael Stack、最近晋升为HBase项目主席的张铎。先说说Stack，一个60后的资深工程师，按辈分我应该叫声大伯，这位大伯精力过人到什么程度呢？我早上打开邮件发现Stack刚回复一个JIRA，到了下午14点打开邮件又发现Stack刚提了个patch；晚上23:30打开邮件居然发现Stack又评论了一下别人刚提交的patch。大伯工作的时间居然能覆盖我整天的工作时间。再说说张铎，就是那个雷军曾在文章中叫过一声铎神的男人，他坐我右手边，我比较了解：白天大部分时间都在各种开会，到了下班不开会了就开始在社区各种写代码了。另外，几乎每个周末都有几个JIRA被他从Create到Resolved吧。
-我挺好奇，为啥社区的大佬们都能如此全情投入？不久前看到一个“增强回路”的词，我才有了一点自己的理解。简单来说，就是A刚开始做了一件事情后，收到了一些正面的反馈（有可能是偶然的），然后激发A用更大的热情去做这件事，后面又收到更加强烈的正面反馈，于是A能以更大更持续的热情去做这件事情。我觉得Stack大伯和铎神，应该是走在各自的“增强回路”上的，所以他们才有这么大的热情投入社区。
-其实HBase开源社区同样需要一个“增强回路”。首先，有一个非常活跃的研发团队持续不断的优化和改进HBase；然后，用户根据需求找到一些竞品，在各种权衡之后，发现当前的最优解是HBase，选定HBase作为他们的基础依赖；后来，体验很好的用户会向更多人自发推荐HBase，部分用户会发现一些HBase问题和Bug，少数用户着手参与社区解决问题；最终，社区吸引了更多的人参与这个项目，包括推广、答疑、分享、改进、优化HBase。
-目前HBase社区是非常活跃的，在2018年度评估中，HBase活跃度在整个Apache项目中排行第二。用户的基数也很大，尤其是国内，HBaseConAsia2019大会吸引了2万用户观看现场直播。但HBase不同于其他开源项目的是：背后并没有一家占据压倒性的商业公司来全权负责项目推广和分享。对用户来说，官方文档和技术博客是一个很好的学习渠道，但当很多人问到希望推荐一本讲HBase原理的书时，我们全都有点不知所措了。所以，我和范欣欣决定写一本结合HBase实践讲原理的书，于是就有了这本《HBase原理与实践》。
-说实话，对于工程师来说，写作一本书比写代码投入的精力要多很多，毕竟是从一个轨道切换到另外一个轨道：代码是精确计算的，文字是模糊表达的。为了做到深入浅出，我们不得不做很多铺垫、提炼、推理、提醒、揭示、总结，以便读者们能顺着我们的思路来理解。尽量把一个严谨的工程项目掰开、揉碎、拼接、组织，最终把一个好故事讲的符合逻辑，还能圆满大结局。这真是把我和范欣欣累坏了。
-这里，跟大家分享一下本书的一些数据：
-1.为了做到从设计角度（而不是源码角度）讲清楚HBase的运行原理，我们在320页的书中，设计了200多幅插图，堪称图解HBase；
-2.为了把这本书的故事讲圆、讲通，我、范欣欣以及本书编辑吴怡老师每人通读了不下20遍；
-3.为了帮助读者真正理解HBase，我们设计了近50道的思考练习题（包括编程题和设计题）。这是和市面上同类型书籍区别最大的地方，因为我们认为：对读者来说，懂HBase并不是看了多少文档，读了多少行代码，而是解决了多少问题。解决问题的速度和难度是深入理解与否的唯一评判标准。
-总的来说，我认为这是一本把HBase原理和实践讲通透了的硬核技术书，但绝对不会是一本让你读起来很轻松的技术书。
-下面就是本书的封面和封底的设计了，希望大家喜欢。
-当然，我们也非常荣幸地邀请到很多在业界有影响力的前辈为本书写推荐语。
-关于本书上市
-本书将在2019年9月13日左右在各大电商网站上销售，原价129元。今天到上市日这段时间，是本书的预售阶段，扫描下图二维码下单，只需99元即可获得如下三件套：纸质实体书+电子书+鲜读版作者原稿。过了预售阶段，原价129元只能买到实体书，电子书需要另外单独购买。所以，预售阶段购买是最划算的。我们觉得有责任和义务告知读者这件事情，这也是我们写这篇文章的目的之一吧。
-当然，目前当当网和京东网也已经开放预售链接，有兴趣的朋友可以关注下。
-当当网预售链接：
-京东网预售链接
-本书作者简介
-胡争 小米公司HBase工程师，Apache HBase PMC成员，负责Apache HBase项目研发及小米HBase集群维护，对HBase及相关分布式存储系统有很多独到的见解。开源技术爱好者，长期活跃在Apache开源社区，热衷技术分享，博客地址: http://openinx.github.io。
-范欣欣 现就职于网易杭州研究院数据科学中心，负责HBase以及分布式时序数据库的内核开发运维工作，对HBase的底层工作原理进行长时间的探索和深入研究，撰写了大量有关HBase和时序数据库相关的技术文章，深受读者好评。此外，对大数据生态以及数据仓库有深刻而独到的理解。博客地址: http://hbasefly.com。
-利益相关声明
-首先，关于定价部分，我和范欣欣作为作者是没有太多话语权的。抛开定价，无论是本书内容还是排版质量，都应该是很棒的。注意，本书并不是传统的黑色印刷，而是双色印刷，即采用黑色和蓝色两种颜色印刷，使得读者的阅读体验更佳。
-其次，销售额10%左右作为版税由两位作者平分，相信写过技术书的朋友都知道，2万册销量的技术书已经属于畅销书。受限于HBase的用户总基数，这个版税收入对我们接近两年的业余投入来说，几乎没有任何吸引力，但我们还是去做了这件事，因为我们觉得这将是让用户和HBase社区走向更好“增强回路”的一件事情。
-最后，这是一本献给Apache HBase技术社区的书。感谢那些年复一年、日复一日不断贡献和反馈的PMC成员、Committer、Contributor以及庞大的用户群体，你们都是这个项目背后可歌可泣的英雄。</description>
+      <description>&lt;p&gt;我在 Apache HBase 社区工作了一段时间后，发现有一些精力过人的大咖：十年如一日持续不断贡献的Michael Stack、最近晋升为HBase项目主席的张铎。先说说Stack，一个60后的资深工程师，按辈分我应该叫声大伯，这位大伯精力过人到什么程度呢？我早上打开邮件发现Stack刚回复一个JIRA，到了下午14点打开邮件又发现Stack刚提了个patch；晚上23:30打开邮件居然发现Stack又评论了一下别人刚提交的patch。大伯工作的时间居然能覆盖我整天的工作时间。再说说张铎，就是那个雷军曾在文章中叫过一声铎神的男人，他坐我右手边，我比较了解：白天大部分时间都在各种开会，到了下班不开会了就开始在社区各种写代码了。另外，几乎每个周末都有几个JIRA被他从Create到Resolved吧。&lt;/p&gt;
+&lt;p&gt;我挺好奇，为啥社区的大佬们都能如此全情投入？不久前看到一个“增强回路”的词，我才有了一点自己的理解。简单来说，就是A刚开始做了一件事情后，收到了一些正面的反馈（有可能是偶然的），然后激发A用更大的热情去做这件事，后面又收到更加强烈的正面反馈，于是A能以更大更持续的热情去做这件事情。我觉得Stack大伯和铎神，应该是走在各自的“增强回路”上的，所以他们才有这么大的热情投入社区。&lt;/p&gt;
+&lt;p&gt;其实HBase开源社区同样需要一个“增强回路”。首先，有一个非常活跃的研发团队持续不断的优化和改进HBase；然后，用户根据需求找到一些竞品，在各种权衡之后，发现当前的最优解是HBase，选定HBase作为他们的基础依赖；后来，体验很好的用户会向更多人自发推荐HBase，部分用户会发现一些HBase问题和Bug，少数用户着手参与社区解决问题；最终，社区吸引了更多的人参与这个项目，包括推广、答疑、分享、改进、优化HBase。&lt;/p&gt;
+&lt;p&gt;目前HBase社区是非常活跃的，在2018年度评估中，HBase活跃度在整个Apache项目中排行第二。用户的基数也很大，尤其是国内，HBaseConAsia2019大会吸引了2万用户观看现场直播。但HBase不同于其他开源项目的是：背后并没有一家占据压倒性的商业公司来全权负责项目推广和分享。对用户来说，官方文档和技术博客是一个很好的学习渠道，但当很多人问到希望推荐一本讲HBase原理的书时，我们全都有点不知所措了。所以，我和范欣欣决定写一本结合HBase实践讲原理的书，于是就有了这本《HBase原理与实践》。&lt;/p&gt;
+&lt;p&gt;说实话，对于工程师来说，写作一本书比写代码投入的精力要多很多，毕竟是从一个轨道切换到另外一个轨道：代码是精确计算的，文字是模糊表达的。为了做到深入浅出，我们不得不做很多铺垫、提炼、推理、提醒、揭示、总结，以便读者们能顺着我们的思路来理解。尽量把一个严谨的工程项目掰开、揉碎、拼接、组织，最终把一个好故事讲的符合逻辑，还能圆满大结局。这真是把我和范欣欣累坏了。&lt;/p&gt;
+&lt;p&gt;这里，跟大家分享一下本书的一些数据：&lt;/p&gt;
+&lt;p&gt;1.为了做到从设计角度（而不是源码角度）讲清楚HBase的运行原理，我们在320页的书中，设计了200多幅插图，堪称图解HBase；&lt;/p&gt;
+&lt;p&gt;2.为了把这本书的故事讲圆、讲通，我、范欣欣以及本书编辑吴怡老师每人通读了不下20遍；&lt;/p&gt;
+&lt;p&gt;3.为了帮助读者真正理解HBase，我们设计了近50道的思考练习题（包括编程题和设计题）。这是和市面上同类型书籍区别最大的地方，因为我们认为：对读者来说，懂HBase并不是看了多少文档，读了多少行代码，而是解决了多少问题。&lt;strong&gt;解决问题的速度和难度是深入理解与否的唯一评判标准&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;总的来说，我认为这是一本把HBase原理和实践讲通透了的硬核技术书，但绝对不会是一本让你读起来很轻松的技术书。&lt;/p&gt;
+&lt;p&gt;下面就是本书的封面和封底的设计了，希望大家喜欢。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-book-first-page.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;当然，我们也非常荣幸地邀请到很多在业界有影响力的前辈为本书写推荐语。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-book-last-page.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;关于本书上市&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;本书将在2019年9月13日左右在各大电商网站上销售，原价129元。今天到上市日这段时间，是本书的预售阶段，扫描下图二维码下单，只需99元即可获得如下三件套：纸质实体书+电子书+鲜读版作者原稿。过了预售阶段，原价129元只能买到实体书，电子书需要另外单独购买。所以，预售阶段购买是最划算的。我们觉得有责任和义务告知读者这件事情，这也是我们写这篇文章的目的之一吧。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-book-pre-sales.jpeg&#34;&gt;&lt;/p&gt;
+&lt;p&gt;当然，目前当当网和京东网也已经开放预售链接，有兴趣的朋友可以关注下。&lt;/p&gt;
+&lt;p&gt;当当网预售&lt;a href=&#34;http://product.dangdang.com/27930978.html&#34;&gt;链接&lt;/a&gt;：&lt;/p&gt;
+&lt;p&gt;京东网预售&lt;a href=&#34;https://item.jd.com/12701428.html&#34;&gt;链接&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;本书作者简介&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;胡争  小米公司HBase工程师，Apache HBase PMC成员，负责Apache HBase项目研发及小米HBase集群维护，对HBase及相关分布式存储系统有很多独到的见解。开源技术爱好者，长期活跃在Apache开源社区，热衷技术分享，博客地址: &lt;a href=&#34;http://openinx.github.io&#34;&gt;http://openinx.github.io&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;范欣欣  现就职于网易杭州研究院数据科学中心，负责HBase以及分布式时序数据库的内核开发运维工作，对HBase的底层工作原理进行长时间的探索和深入研究，撰写了大量有关HBase和时序数据库相关的技术文章，深受读者好评。此外，对大数据生态以及数据仓库有深刻而独到的理解。博客地址: &lt;a href=&#34;http://hbasefly.com&#34;&gt;http://hbasefly.com&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;利益相关声明&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;首先，关于定价部分，我和范欣欣作为作者是没有太多话语权的。抛开定价，无论是本书内容还是排版质量，都应该是很棒的。注意，本书并不是传统的黑色印刷，而是双色印刷，即采用黑色和蓝色两种颜色印刷，使得读者的阅读体验更佳。&lt;/p&gt;
+&lt;p&gt;其次，销售额10%左右作为版税由两位作者平分，相信写过技术书的朋友都知道，2万册销量的技术书已经属于畅销书。受限于HBase的用户总基数，这个版税收入对我们接近两年的业余投入来说，几乎没有任何吸引力，但我们还是去做了这件事，因为我们觉得这将是让用户和HBase社区走向更好“增强回路”的一件事情。&lt;/p&gt;
+&lt;p&gt;最后，这是一本献给Apache HBase技术社区的书。感谢那些年复一年、日复一日不断贡献和反馈的PMC成员、Committer、Contributor以及庞大的用户群体，你们都是这个项目背后可歌可泣的英雄。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>社区HBase未来值得做的一些工作</title>
       <link>https://openinx.github.io/posts/2019-07-15-future-work-for-hbase2.x/</link>
       <pubDate>Fri, 06 Sep 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-07-15-future-work-for-hbase2.x/</guid>
-      <description>HBase2.0.0版本自2018年4月30日正式发布起， 到现在已经过了接近15个月。现在的状态是HBase2.0.x已经EOL了，后面不会再发新的Release版本了，HBase2.1已经发布到HBase2.1.6了，个人预计将来也不会维护太长的时间。今后的HBase2.x的稳定版本将会是HBase2.2.x和HBase2.3.x，尤其是HBase2.2.x，可能成为未来真正意义上经过大厂线上严苛考验的版本。
-这里，我总结一下未来HBase2.x上需要投入精力去做的一些事情：
-1.ProcedureV2和AssignmentV2的引入，能通过框架的方式保证分布式任务流的原子性。这在HBase1.x上曾经是一个非常令人困惑的麻烦。举个简单的例子，在建表流程中，会分成几步：a. 在zk上加个znode；b. 在文件系统上新增表的目录；c. 生成Assign的任务，并分发到具体的RegionServer，让其执行online region的操作。在HBase1.x中任何一步异常了，都可能造成各状态不一致的问题发生，极端情况下可能需要通过类似HBCK这样的工具来进行修复。但在HBase2.x中，已经通过框架来解决了这个问题。需要人操行的地方少了，那代码需要操心的地方就很多了，由于各个任务流都采用Procedure V2进行重写，中间难免会一些bug，所以，后续将这块功能变得更加稳定，是一个优先级非常高的工作。
-2.HBCK2支持修复更多的场景。虽说采用ProcedureV2之后，各Region状态不一致的概率大大降低了，但仍然难保可能会存在代码bug，导致有问题。目前的HBCK2主要支持修复Region Assign／UnAssign这样的问题，对于类似Region重叠和空洞这样的问题，期望HBCK2也能得到支持。这样即使集群出问题了，也有合适的工具能辅助修复。
-3.In-Memory Compaction功能。可以说这是一个性能优化进步很大的功能，在我们大数据集(100亿行数据)的测试情况下，写入操作的P999延迟可以严格控制在令人惊讶的50ms以内，而且延迟非常稳定。但是社区考虑到其功能的稳定性，暂时没有把它设为默认的Memstore，也就是说默认的Mmestore仍然是延迟控制较差的ConcurrentSkipListMap实现的DefaultMemstore。在我们的测试环境，确实也发现了一些很难定位的BUG，例如HBASE-22608。因此，将这个功能弄的更稳定也是优先级特别高的一个事情。
-4.MOB这个功能很好，可以通过同一个API处理各个Value大小的Cell，而且原子语义等跟正常的Cell完全一致。但当前的方案仍然有一些缺陷，例如MOB的大Value compaction现在是由Master端来负责跑的，这种Compaction的数据量会是一个巨大的量，单点来做会非常耗时，毕竟单机网卡流量和CPU资源都非常有限。理想的方案是分担到各个RegionServer去做，但目前还没有实现，这也就是一个必须要做的工作。
-5.在读写路径上引入Offheap后，有时候目前会碰到一些字节错乱的bug。这种bug只在特定条件下才触发，不易复现极大地增加了定位问题的难度，而且预计未来可能会碰到一些Memory Leak的问题，毕竟自己管理内存之后，就有这种可能。所以，这块也需要考虑。
-6.在HBase2.x中，除了Flush和Snapshot两个流程之外，其他的管理流程全部都Procedure-V2化。所以将Flush和Snapshot搞成Procedure-V2的写法，也是一个非常必要的工作。毕竟现在既有ProcedureV1的写法，又有Procedure-V2的写法，让代码显得较为冗余，搞定了Flush和Snapshot之后，ProcedureV1的框架就可以完全清除掉了。
-7.Replicaiton现在仍然是走ZK的，开启串行复制之后，每个Region都会在ZK上维护一个znode。这在大集群上可能会对ZK造成很大的压力。所以Replication从存ZK改成存Meta，也会是一个很必要的工作。之前我尝试去做这方面的研发，后面发现一个比较重要的问题，就是启动时Master和RegionServer死锁的问题，要解决这个问题可能需要对Master启动流程做一些调整，会有一些额外的工作。当时有其他优先级更高的事情，就干其他事情去了，从长远来看，改成走Meta是必须的。
-8.CCSMap是阿里巴巴研发的内存压缩型ConcurrentSkipListMap，对写路径上的GC非常友好。目前社区还没有人力投入到Merge到master分支的工作上，未来期望是把它做成一个可插拔的组件，甚至是一个单独的依赖。可以随时替换掉JDK内置的ConcurrentSkipListMap，而且适用于除HBase之外的其他项目。
-9.多级BlockCache，L1存Index/DataBlock、L2是基于offheap的BucketCache、L3是基于SSD的BucketCache。这样可以优化掉HDFS的协议栈，同时解决掉locality的问题。读性能能得到很好的优化。</description>
+      <description>&lt;p&gt;HBase2.0.0版本自2018年4月30日正式发布起， 到现在已经过了接近15个月。现在的状态是HBase2.0.x已经EOL了，后面不会再发新的Release版本了，HBase2.1已经发布到HBase2.1.6了，个人预计将来也不会维护太长的时间。今后的HBase2.x的稳定版本将会是HBase2.2.x和HBase2.3.x，尤其是HBase2.2.x，可能成为未来真正意义上经过大厂线上严苛考验的版本。&lt;/p&gt;
+&lt;p&gt;这里，我总结一下未来HBase2.x上需要投入精力去做的一些事情：&lt;/p&gt;
+&lt;p&gt;1.ProcedureV2和AssignmentV2的引入，能通过框架的方式保证分布式任务流的原子性。这在HBase1.x上曾经是一个非常令人困惑的麻烦。举个简单的例子，在建表流程中，会分成几步：a. 在zk上加个znode；b. 在文件系统上新增表的目录；c. 生成Assign的任务，并分发到具体的RegionServer，让其执行online region的操作。在HBase1.x中任何一步异常了，都可能造成各状态不一致的问题发生，极端情况下可能需要通过类似HBCK这样的工具来进行修复。但在HBase2.x中，已经通过框架来解决了这个问题。需要人操行的地方少了，那代码需要操心的地方就很多了，由于各个任务流都采用Procedure V2进行重写，中间难免会一些bug，所以，后续将这块功能变得更加稳定，是一个优先级非常高的工作。&lt;/p&gt;
+&lt;p&gt;2.HBCK2支持修复更多的场景。虽说采用ProcedureV2之后，各Region状态不一致的概率大大降低了，但仍然难保可能会存在代码bug，导致有问题。目前的HBCK2主要支持修复Region Assign／UnAssign这样的问题，对于类似Region重叠和空洞这样的问题，期望HBCK2也能得到支持。这样即使集群出问题了，也有合适的工具能辅助修复。&lt;/p&gt;
+&lt;p&gt;3.In-Memory Compaction功能。可以说这是一个性能优化进步很大的功能，在我们大数据集(100亿行数据)的测试情况下，写入操作的P999延迟可以严格控制在令人惊讶的50ms以内，而且延迟非常稳定。但是社区考虑到其功能的稳定性，暂时没有把它设为默认的Memstore，也就是说默认的Mmestore仍然是延迟控制较差的ConcurrentSkipListMap实现的DefaultMemstore。在我们的测试环境，确实也发现了一些很难定位的BUG，例如&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-22608&#34;&gt;HBASE-22608&lt;/a&gt;。因此，将这个功能弄的更稳定也是优先级特别高的一个事情。&lt;/p&gt;
+&lt;p&gt;4.MOB这个功能很好，可以通过同一个API处理各个Value大小的Cell，而且原子语义等跟正常的Cell完全一致。但当前的方案仍然有一些缺陷，例如MOB的大Value compaction现在是由Master端来负责跑的，这种Compaction的数据量会是一个巨大的量，单点来做会非常耗时，毕竟单机网卡流量和CPU资源都非常有限。理想的方案是分担到各个RegionServer去做，但目前还没有实现，这也就是一个必须要做的工作。&lt;/p&gt;
+&lt;p&gt;5.在读写路径上引入Offheap后，有时候目前会碰到一些字节错乱的bug。这种bug只在特定条件下才触发，不易复现极大地增加了定位问题的难度，而且预计未来可能会碰到一些Memory Leak的问题，毕竟自己管理内存之后，就有这种可能。所以，这块也需要考虑。&lt;/p&gt;
+&lt;p&gt;6.在HBase2.x中，除了Flush和Snapshot两个流程之外，其他的管理流程全部都Procedure-V2化。所以将Flush和Snapshot搞成Procedure-V2的写法，也是一个非常必要的工作。毕竟现在既有ProcedureV1的写法，又有Procedure-V2的写法，让代码显得较为冗余，搞定了Flush和Snapshot之后，ProcedureV1的框架就可以完全清除掉了。&lt;/p&gt;
+&lt;p&gt;7.Replicaiton现在仍然是走ZK的，开启串行复制之后，每个Region都会在ZK上维护一个znode。这在大集群上可能会对ZK造成很大的压力。所以Replication从存ZK改成存Meta，也会是一个很必要的工作。之前我尝试去做这方面的研发，后面发现一个比较重要的问题，就是启动时Master和RegionServer死锁的问题，要解决这个问题可能需要对Master启动流程做一些调整，会有一些额外的工作。当时有其他优先级更高的事情，就干其他事情去了，从长远来看，改成走Meta是必须的。&lt;/p&gt;
+&lt;p&gt;8.CCSMap是阿里巴巴研发的内存压缩型ConcurrentSkipListMap，对写路径上的GC非常友好。目前社区还没有人力投入到Merge到master分支的工作上，未来期望是把它做成一个可插拔的组件，甚至是一个单独的依赖。可以随时替换掉JDK内置的ConcurrentSkipListMap，而且适用于除HBase之外的其他项目。&lt;/p&gt;
+&lt;p&gt;9.多级BlockCache，L1存Index/DataBlock、L2是基于offheap的BucketCache、L3是基于SSD的BucketCache。这样可以优化掉HDFS的协议栈，同时解决掉locality的问题。读性能能得到很好的优化。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>HBaseConAsia2019 盛会即将来袭</title>
       <link>https://openinx.github.io/posts/2019-07-08-hbaseconasia2019-is-coming/</link>
       <pubDate>Mon, 08 Jul 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-07-08-hbaseconasia2019-is-coming/</guid>
-      <description>第三届Apache HBaseConAsia 峰会将于7月20日在北京举行。作为Apache基金会旗下HBase社区的顶级用户峰会，HBaseCon大会是Apache HBase™官方从2012年开始发起和延续至今的技术会议。届时将有超20位来自亚洲一线互联网和大数据生态相关企业的技术专家和社区领袖亮相，带来HBase及大数据技术生态的最新洞察和行业实践。
-Apache HBase是基于Apache Hadoop构建的一个高可用、高性能、多版本的分布式NoSQL数据库，是Google Big table的开源实现，通过在廉价PC Server上搭建起大规模结构化存储集群，提供海量数据高性能的随机读写能力。
-伴随着移动互联网和物联网时代数据的爆炸性增长，HBase作为基础存储系统得到了快速发展与应用。阿里、Facebook、雅虎、小米、华为、腾讯、京东、滴滴、网易、360、快手等众多国内外顶级互联网公司先后成为HBase的重度用户，并深度参与项目优化与改进。目前，中国力量已成为HBase生态积极壮大的核心源动力，国内共有5位PMC成员和17位HBase Committer。其中小米公司累计培养2位PMC成员和9位HBase Committer。
-精彩演讲，先睹为快 开场演讲
-演讲嘉宾：崔宝秋（小米集团副总裁、技术委员会主席）
-HBase现状与未来方向 演讲主题：HBase现状
-内容简介：具有里程碑意义的HBase2.0.0发布不久，HBase3.0.0已经呼之欲出。资深PMC张铎将与您一起讨论HBase2.x以及HBase3.x的现状和核心改进。分享将包括Procedure-V2、Assignment-V2、HBCK2、跨机房同步复制、异步客户端等核心主题，干货十足。
-演讲嘉宾：张铎（HBase PMC成员，小米存储团队负责人，小米开源委员会秘书长）
-演讲主题：HBase在云上的优势及技术趋势
-内容简介：与传统的物理数据中心相比，HBase在云上的优势是什么？构建云HBase的挑战是什么？未来的技术趋势是什么？这些都将是本次演讲要讨论的重点。除此之外，还将包括以下内容：
-1.为何HBase架构天然适用云环境 2.HDFS构建在云盘上的挑战 3.HBase如何充分利用不同的云存储介质 4.HBase Serverless的实现和价值
-5.借助云端虚拟机的拓展能力，HBase还能可以做些什么？
-6.云端HBase如何从GPU，FPGA等新硬件中获益？
-演讲嘉宾：沈春辉（HBase PMC成员、阿里巴巴资深技术专家）
-演讲主题：HBase BucketCache with Persistency Memory
-内容简介：Intel的DCPMM (Date Centre Persistent Memory devices) 是一种新型的非易失内存技术。该设备支持更大内存容量的同时，还能保证数据的持久性。英特尔的资深工程师团队将分享如何将HBase BucketCache构建在这些大容量的非易失内存上，同时将给出具体的性能对比数据。
-演讲嘉宾：Anoop Jam John （HBase PMC成员）、Ramkrishna S Vasudevan (HBase PMC成员)、Xu Kai ( Intel 工程师）
-HBase2.x内核改进 演讲主题：Further GC optimization: Reading HFileBlock into offheap directly
-内容简介：HBase2.0.0版本已经将最核心的读写路径做了offheap化，极大的降低了GC对读写请求延迟的影响。但在性能测试中，我们发现当cache命中率不高时，读请求的P999延迟几乎和GC的Stop The World耗时一致。本次分享，将讲述Intel工程师和小米工程师如何一起携手展开一场极致的GC优化之旅。</description>
+      <description>&lt;p&gt;第三届Apache HBaseConAsia 峰会将于7月20日在北京举行。作为Apache基金会旗下HBase社区的顶级用户峰会，HBaseCon大会是Apache HBase™官方从2012年开始发起和延续至今的技术会议。届时将有超20位来自亚洲一线互联网和大数据生态相关企业的技术专家和社区领袖亮相，带来HBase及大数据技术生态的最新洞察和行业实践。&lt;/p&gt;
+&lt;p&gt;Apache HBase是基于Apache Hadoop构建的一个高可用、高性能、多版本的分布式NoSQL数据库，是Google Big table的开源实现，通过在廉价PC Server上搭建起大规模结构化存储集群，提供海量数据高性能的随机读写能力。&lt;/p&gt;
+&lt;p&gt;伴随着移动互联网和物联网时代数据的爆炸性增长，HBase作为基础存储系统得到了快速发展与应用。阿里、Facebook、雅虎、小米、华为、腾讯、京东、滴滴、网易、360、快手等众多国内外顶级互联网公司先后成为HBase的重度用户，并深度参与项目优化与改进。目前，中国力量已成为HBase生态积极壮大的核心源动力，国内共有5位PMC成员和17位HBase Committer。其中小米公司累计培养2位PMC成员和9位HBase Committer。&lt;/p&gt;
+&lt;h3 id=&#34;精彩演讲先睹为快&#34;&gt;精彩演讲，先睹为快&lt;/h3&gt;
+&lt;p&gt;&lt;strong&gt;开场演讲&lt;/strong&gt;&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：崔宝秋（小米集团副总裁、技术委员会主席）&lt;/p&gt;
+&lt;h4 id=&#34;__hbase现状与未来方向__&#34;&gt;&lt;strong&gt;HBase现状与未来方向&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：HBase现状&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：具有里程碑意义的HBase2.0.0发布不久，HBase3.0.0已经呼之欲出。资深PMC张铎将与您一起讨论HBase2.x以及HBase3.x的现状和核心改进。分享将包括Procedure-V2、Assignment-V2、HBCK2、跨机房同步复制、异步客户端等核心主题，干货十足。&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：张铎（HBase PMC成员，小米存储团队负责人，小米开源委员会秘书长）&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：HBase在云上的优势及技术趋势&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：与传统的物理数据中心相比，HBase在云上的优势是什么？构建云HBase的挑战是什么？未来的技术趋势是什么？这些都将是本次演讲要讨论的重点。除此之外，还将包括以下内容：&lt;br&gt;
+1.为何HBase架构天然适用云环境 &lt;br&gt;
+2.HDFS构建在云盘上的挑战 &lt;br&gt;
+3.HBase如何充分利用不同的云存储介质 &lt;br&gt;
+4.HBase Serverless的实现和价值&lt;br&gt;
+5.借助云端虚拟机的拓展能力，HBase还能可以做些什么？&lt;br&gt;
+6.云端HBase如何从GPU，FPGA等新硬件中获益？&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：沈春辉（HBase PMC成员、阿里巴巴资深技术专家）&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：HBase BucketCache with Persistency Memory&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：Intel的DCPMM (Date Centre Persistent Memory devices) 是一种新型的非易失内存技术。该设备支持更大内存容量的同时，还能保证数据的持久性。英特尔的资深工程师团队将分享如何将HBase BucketCache构建在这些大容量的非易失内存上，同时将给出具体的性能对比数据。&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：Anoop Jam John （HBase PMC成员）、Ramkrishna S Vasudevan (HBase PMC成员)、Xu Kai ( Intel 工程师）&lt;/p&gt;
+&lt;h4 id=&#34;__hbase2x内核改进__&#34;&gt;&lt;strong&gt;HBase2.x内核改进&lt;/strong&gt;&lt;/h4&gt;
+&lt;p&gt;&lt;strong&gt;演讲主题&lt;/strong&gt;：Further GC optimization: Reading HFileBlock into offheap directly&lt;br&gt;
+&lt;strong&gt;内容简介&lt;/strong&gt;：HBase2.0.0版本已经将最核心的读写路径做了offheap化，极大的降低了GC对读写请求延迟的影响。但在性能测试中，我们发现当cache命中率不高时，读请求的P999延迟几乎和GC的Stop The World耗时一致。本次分享，将讲述Intel工程师和小米工程师如何一起携手展开一场极致的GC优化之旅。&lt;br&gt;
+&lt;strong&gt;演讲嘉宾&lt;/strong&gt;：Anoop Jam John （HBase PMC成员），胡争（小米HBase工程师，HBase Committer）&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>漫谈HBase Filter</title>
       <link>https://openinx.github.io/posts/2019-07-02-blog-for-filter-list/</link>
       <pubDate>Tue, 02 Jul 2019 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2019-07-02-blog-for-filter-list/</guid>
-      <description>初衷
-对数据库来说，满足业务多样化的查询方式非常重要。如果说有人设计了一个KV数据库，只提供了Get/Put/Scan这三种接口，估计要被用户吐槽到死，毕竟现实的业务场景并不简单。就以订单系统来说，查询给定用户最近三个月的历史订单，这里面的过滤条件就至少有2个：1. 查指定用户的订单；2. 订单必须是最近是三个月的。此外，这里的过滤条件还必须是用AND来连接的。如果通过Scan先把整个订单表信息加载到客户端，再按照条件过滤，这会给数据库系统造成极大压力。因此，在服务端实现一个数据过滤器是必须的。
-除了上例查询需求，类似小明或小黄最近三个月的历史订单这样的查询需求，同样很常见。这两个查询需求，本质上前者是一个AND连接的多条件查询，后者是一个OR连接的多条件查询，现实场景中AND和OR混合连接的多条件查询需求也很多。因此，HBase设计了Filter以及用AND或OR来连接Filter的FilterList。
-例如下面的过滤器，表示用户将读到rowkey以abc为前缀且值为testA的那些cell。
-fl = new FilterList(MUST_PASS_ALL, new PrefixFilter(&amp;#34;abc&amp;#34;), new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testA&amp;#34;))) ); 实际上，FilterList内部的子Filter也可以是一个FilterList。例如下面过滤器表示用户将读到那些rowkey以abc为前缀且值为testA或testB的f列cell列表。
-fl = new FilterList(MUST_PASS_ALL, new PrefixFilter(&amp;#34;abc&amp;#34;), new FamilyFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;f&amp;#34;))), new FilterList(MUST_PASS_ONE, new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testA&amp;#34;))), new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testB&amp;#34;))) ) ); 因此，FilterList的结构其实是一颗多叉树。每一个叶子节点都是一个具体的Filter，例如PrefixFilter、ValueFilter等；所有的非叶子节点都是一个FilterList，各个子树对应各自的子filter逻辑。对应的图示如下：
-当然，HBase还提供了NOT语义的SkipFilter，例如用户想拿到那些rowkey以abc为前缀但value既不等于testA又不等于testB的f列的cell列表，可用如下FilterList来表示：
-fl = new FilterList(MUST_PASS_ALL, new PrefixFilter(&amp;#34;abc&amp;#34;), new FamilyFilter(EQUAL, new BinaryComparator(&amp;#34;f&amp;#34;)), new SkipFilter( new FilterList(MUST_PASS_ONE, new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testA&amp;#34;))), new ValueFilter(EQUAL, new BinaryComparator(Bytes.toBytes(&amp;#34;testB&amp;#34;))) ) )); 实现
-Filter和FilterList作为一个通用的数据过滤框架，提供了一系列的接口，供用户来实现自定义的Filter。当然，HBase本身也提供了一系列的内置Filter，例如：PrefixFilter、RowFilter、FamilyFilter、QualifierFilter、ValueFilter、ColumnPrefixFilter等。
-事实上，很多Filter都没有必要在服务端从Scan的startRow一直扫描到endRow，中间有很多数据是可以根据Filter具体的语义直接跳过，通过减少磁盘IO和比较次数来实现更高的性能的。以PrefixFilter(&amp;ldquo;333&amp;rdquo;)为例，需要返回的是rowkey以“333”为前缀的数据。
-实际的扫描流程如图所示：</description>
+      <description>&lt;p&gt;&lt;strong&gt;初衷&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;对数据库来说，满足业务多样化的查询方式非常重要。如果说有人设计了一个KV数据库，只提供了Get/Put/Scan这三种接口，估计要被用户吐槽到死，毕竟现实的业务场景并不简单。就以订单系统来说，查询给定用户最近三个月的历史订单，这里面的过滤条件就至少有2个：1. 查指定用户的订单；2. 订单必须是最近是三个月的。此外，这里的过滤条件还必须是用AND来连接的。如果通过Scan先把整个订单表信息加载到客户端，再按照条件过滤，这会给数据库系统造成极大压力。因此，在服务端实现一个数据过滤器是必须的。&lt;/p&gt;
+&lt;p&gt;除了上例查询需求，类似小明或小黄最近三个月的历史订单这样的查询需求，同样很常见。这两个查询需求，本质上前者是一个AND连接的多条件查询，后者是一个OR连接的多条件查询，现实场景中AND和OR混合连接的多条件查询需求也很多。因此，HBase设计了Filter以及用AND或OR来连接Filter的FilterList。&lt;/p&gt;
+&lt;p&gt;例如下面的过滤器，表示用户将读到rowkey以abc为前缀且值为testA的那些cell。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;fl&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ALL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PrefixFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;abc&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testA&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;实际上，FilterList内部的子Filter也可以是一个FilterList。例如下面过滤器表示用户将读到那些rowkey以abc为前缀且值为testA或testB的f列cell列表。&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;fl&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ALL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PrefixFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;abc&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FamilyFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;f&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ONE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; 
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testA&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                    &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testB&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;因此，FilterList的结构其实是一颗多叉树。每一个叶子节点都是一个具体的Filter，例如PrefixFilter、ValueFilter等；所有的非叶子节点都是一个FilterList，各个子树对应各自的子filter逻辑。对应的图示如下：&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;images&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/filter-list-tree-structure.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;当然，HBase还提供了NOT语义的SkipFilter，例如用户想拿到那些rowkey以abc为前缀但value既不等于testA又不等于testB的f列的cell列表，可用如下FilterList来表示：&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-java&#34; data-lang=&#34;java&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;fl&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ALL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;PrefixFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;abc&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FamilyFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;f&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;SkipFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                   &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;FilterList&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;MUST_PASS_ONE&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                        &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testA&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;))),&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                        &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ValueFilter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;EQUAL&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;new&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;BinaryComparator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Bytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;na&#34;&gt;toBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;&amp;#34;testB&amp;#34;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)))&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;                   &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;               &lt;/span&gt;&lt;span class=&#34;p&#34;&gt;));&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;实现&lt;/strong&gt;&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>HBaseConWest2018演讲 - HBase Practice In XiaoMi</title>
       <link>https://openinx.github.io/posts/2018-06-18-hbaseconwest2018/</link>
       <pubDate>Mon, 18 Jun 2018 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2018-06-18-hbaseconwest2018/</guid>
-      <description>HBaseConWest2018于6.18日在美国加州圣何塞举办，本次会议由Hortonworks承办。每年去美国硅谷参加HBaseConWest已经算是小米HBase团队的惯例了，一方面小米团队在HBase社区的影响力有目共睹，目前已经培养了7位HBase Committer，其中有2位HBase PMC；另外一方面，小米内部也很乐意对外去分享公司一年所做的工作，相当于把一年的工作（包括内部的实践以及社区贡献）做一个年度总结分享给大家。
-所以，2018年我们也很积极的提交了演讲议题(HBase Practice In XiaoMi)，并花了很多精力整理总结，内部还做过3次英文试讲。但遗憾的是，今年中美关系比较紧张，美国签证没有如期办下来。按照组内历年的经验，一般提前一个月左右办理签证，能很顺利办下来。今年我们在5.14日去大使馆面试申请签证，被要求填写补充材料，在5.16拿到承办方的visa letter并提交补充材料之后，一直到现在签证尚未发放。本想没办法去现场的话，就只能把我们这个议题提交到8.17日的HBaseConAsia去讲。写邮件跟组委会沟通，组委会之前把我们talk的优先级放的比较高，也比较喜欢我们演讲内容，所以后面就想让我们做一个远程分享。为了以防万一设备异常之类的，就先让我们准备一个视频，有任何异常的话，直接放视频也不慌。于是，我们就录了一个，发现视频效果还行（主要是可以做剪辑，哈哈），就跟组委会说，现场干脆直接用视频好了，有任何疑问的话，远程答疑就好。
-于是，最后在HBaseConWest2018上看到的就是以下PPT和视频了。演讲内容主要分两部分，第一部分小米内部实践，由我的同事田竞云来分享，第二部分复制功能改进，由我来分享。
-PPT Video 总体来说，没有机会去HBaseConWest2018现场分享这个事情，个人还是挺遗憾的。之前Hortonworks的Ted Yu和Pinterest的TianYing获知我们要去美国分享，都很积极的约了我们聚会，最后也只能取消。原定的去美国一些其他行程，也只得取消。有一点值得欣慰的是，在组委会和我们的共同努力下，总算是有机会把小米过去一年做的一些工作整理并呈现给大家，包括美国HBase社区的朋友们。感谢组委会和社区，也感谢铎神和小豪在试讲中提出的很多宝贵建议。</description>
+      <description>&lt;p&gt;&lt;a href=&#34;http://hbase-help.com/?/article/15&#34;&gt;HBaseConWest2018&lt;/a&gt;于6.18日在美国加州圣何塞举办，本次会议由Hortonworks承办。每年去美国硅谷参加HBaseConWest已经算是小米HBase团队的惯例了，一方面小米团队在HBase社区的影响力有目共睹，目前已经培养了7位HBase Committer，其中有2位HBase PMC；另外一方面，小米内部也很乐意对外去分享公司一年所做的工作，相当于把一年的工作（包括内部的实践以及社区贡献）做一个&lt;a href=&#34;http://hbase-help.com/?/question/64&#34;&gt;年度总结&lt;/a&gt;分享给大家。&lt;/p&gt;
+&lt;p&gt;所以，2018年我们也很积极的提交了演讲议题(HBase Practice In XiaoMi)，并花了很多精力整理总结，内部还做过3次英文试讲。但遗憾的是，今年中美关系比较紧张，美国签证没有如期办下来。按照组内历年的经验，一般提前一个月左右办理签证，能很顺利办下来。今年我们在5.14日去大使馆面试申请签证，被要求填写补充材料，在5.16拿到承办方的visa letter并提交补充材料之后，一直到现在签证尚未发放。本想没办法去现场的话，就只能把我们这个议题提交到8.17日的HBaseConAsia去讲。写邮件跟组委会沟通，组委会之前把我们talk的优先级放的比较高，也比较喜欢我们演讲内容，所以后面就想让我们做一个远程分享。为了以防万一设备异常之类的，就先让我们准备一个视频，有任何异常的话，直接放视频也不慌。于是，我们就录了一个，发现视频效果还行（主要是可以做剪辑，哈哈），就跟组委会说，现场干脆直接用视频好了，有任何疑问的话，远程答疑就好。&lt;/p&gt;
+&lt;p&gt;于是，最后在HBaseConWest2018上看到的就是以下PPT和视频了。演讲内容主要分两部分，第一部分小米内部实践，由我的同事田竞云来分享，第二部分复制功能改进，由我来分享。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&#34;https://openinx.github.io/ppt/hbase-practice-at-xiaomi-hbasecon2018.pdf&#34;&gt;PPT&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://pan.baidu.com/s/10svpfoSU2hJaOqAMTQl2og&#34;&gt;Video&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;总体来说，没有机会去HBaseConWest2018现场分享这个事情，个人还是挺遗憾的。之前Hortonworks的Ted Yu和Pinterest的TianYing获知我们要去美国分享，都很积极的约了我们聚会，最后也只能取消。原定的去美国一些其他行程，也只得取消。有一点值得欣慰的是，在组委会和我们的共同努力下，总算是有机会把小米过去一年做的一些工作整理并呈现给大家，包括美国HBase社区的朋友们。感谢组委会和社区，也感谢铎神和小豪在试讲中提出的很多宝贵建议。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>成为HBase Committer</title>
       <link>https://openinx.github.io/posts/2017-10-22-become-hbase-committer/</link>
       <pubDate>Sun, 22 Oct 2017 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2017-10-22-become-hbase-committer/</guid>
-      <description>我于10月20号，接受Apache HBase社区邀请，成为HBase Committer。 由于我在小米就是专门负责维护内部HBase分支以及线上集群，再加上之前小米已经有6位HBase Committer，其中一位PMC(项目委员会成员)， 所以在这样的环境之下，成为Committer其实是一件特别顺理成章的事情，并没有特别值得骄傲的地方。相比一个在公司做HBase方向但是公司缺乏HBase Committer的同学来说，成为HBase Committer需要付出更多的时间和努力。
-下面来谈谈我对社区的一些观察：
-首先HBase的PMC成员大部分都是极其活跃的，活跃到什么程度呢，就是一年365天，基本上每天都在为社区贡献，甚至度假的时候只要能连上网，他们也在不遗余力的回复JIRA和邮件。 当然对大部分PMC而言，为HBase社区贡献并推动社区的进步，跟他们所在公司的目标是一致的，但从日活跃时长以及一年的活跃天数来看，他们相比普通的敬业码农，却都称得上是不折不扣的工作狂。
-Apache相关社区具有提升机制，例如当一个Contributor提及的代码超过一定量时，就会有PMC成员推荐这位Contributor去当Committer，当一个Committer的贡献达到一定程度的时候，又会被PMC推荐加入项目管理委员会，也就是PMC。同时，Committer和PMC在业界都是能得到广泛认可的，无论从个人职业层面，还是从项目发展方面，这都是一个很好的机制。而Github上的大部分开源项目可能都没有类似的提升机制，所以一个Contributor可能贡献了很多代码，但还是Contributor，这很可能会打消积极性。
-HBase社区的代码贡献者来自全球的各个地方，有的人在美国，有的人在印度，有的人在中国。各位贡献者分布在不同的时区内，所以跟进一个问题，可能是今天中国人说了一句话，等到明天美国人才能回句话，接着印度人又提了一些意见，最后中国人觉得不错可以做就开始做了。整个任务的跟进时间可能特别长，所以，做社区的事情一定要有长期跟进的准备。有一些同学跟我聊过，说在公司里面跟进社区问题会不会很耽误时间，其实具体每一天来说，并不需要花特别多的时间用来跟进社区，我工作时间一般还是好好在公司搬砖，下班后会花一些时间用来写社区代码之类的，反正社区跟进也比较慢。
-公司和社区关系。小米相对来说比较开放一点，公司管理层面非常鼓励员工积极参与到开源社区，HBase就不用多说，除了HBase之外，贵米也自主研发并开源的一些项目，例如分布式KV存储Pegasus，业界知名的监控系统Falcon等等。这其实是一个好现象，一方面能为公司塑造较好的技术品牌，另外一方面，开源能激发码农的工作积极性，因为码农有一个很好的平台和世界上该领域最优秀的程序员们一起合作，精神层面能到极大的满足。相对应的问题就是社区做的这些工作是否对公司有用，如果是fix bug，必然有用。如果是用不上的新功能，这个确实没有必要花太多精力，因为你觉得用不上的，别人也会觉得用不上。所以，修复Bug加上开发有用的Feature，才是正道。</description>
+      <description>&lt;p&gt;我于10月20号，接受Apache HBase社区邀请，成为HBase Committer。  由于我在小米就是专门负责维护内部HBase分支以及线上集群，再加上之前小米已经有6位HBase Committer，其中一位PMC(项目委员会成员)， 所以在这样的环境之下，成为Committer其实是一件特别顺理成章的事情，并没有特别值得骄傲的地方。相比一个在公司做HBase方向但是公司缺乏HBase Committer的同学来说，成为HBase Committer需要付出更多的时间和努力。&lt;/p&gt;
+&lt;p&gt;下面来谈谈我对社区的一些观察：&lt;/p&gt;
+&lt;p&gt;首先HBase的PMC成员大部分都是极其活跃的，活跃到什么程度呢，就是一年365天，基本上每天都在为社区贡献，甚至度假的时候只要能连上网，他们也在不遗余力的回复JIRA和邮件。 当然对大部分PMC而言，为HBase社区贡献并推动社区的进步，跟他们所在公司的目标是一致的，但从日活跃时长以及一年的活跃天数来看，他们相比普通的敬业码农，却都称得上是不折不扣的工作狂。&lt;/p&gt;
+&lt;p&gt;Apache相关社区具有提升机制，例如当一个Contributor提及的代码超过一定量时，就会有PMC成员推荐这位Contributor去当Committer，当一个Committer的贡献达到一定程度的时候，又会被PMC推荐加入项目管理委员会，也就是PMC。同时，Committer和PMC在业界都是能得到广泛认可的，无论从个人职业层面，还是从项目发展方面，这都是一个很好的机制。而Github上的大部分开源项目可能都没有类似的提升机制，所以一个Contributor可能贡献了很多代码，但还是Contributor，这很可能会打消积极性。&lt;/p&gt;
+&lt;p&gt;HBase社区的代码贡献者来自全球的各个地方，有的人在美国，有的人在印度，有的人在中国。各位贡献者分布在不同的时区内，所以跟进一个问题，可能是今天中国人说了一句话，等到明天美国人才能回句话，接着印度人又提了一些意见，最后中国人觉得不错可以做就开始做了。整个任务的跟进时间可能特别长，所以，做社区的事情一定要有长期跟进的准备。有一些同学跟我聊过，说在公司里面跟进社区问题会不会很耽误时间，其实具体每一天来说，并不需要花特别多的时间用来跟进社区，我工作时间一般还是好好在公司搬砖，下班后会花一些时间用来写社区代码之类的，反正社区跟进也比较慢。&lt;/p&gt;
+&lt;p&gt;公司和社区关系。小米相对来说比较开放一点，公司管理层面非常鼓励员工积极参与到开源社区，HBase就不用多说，除了HBase之外，贵米也自主研发并开源的一些项目，例如&lt;a href=&#34;https://github.com/xiaomi/pegasus&#34;&gt;分布式KV存储Pegasus&lt;/a&gt;，&lt;a href=&#34;https://github.com/XiaoMi/open-falcon&#34;&gt;业界知名的监控系统Falcon&lt;/a&gt;等等。这其实是一个好现象，一方面能为公司塑造较好的技术品牌，另外一方面，开源能激发码农的工作积极性，因为码农有一个很好的平台和世界上该领域最优秀的程序员们一起合作，精神层面能到极大的满足。相对应的问题就是社区做的这些工作是否对公司有用，如果是fix bug，必然有用。如果是用不上的新功能，这个确实没有必要花太多精力，因为你觉得用不上的，别人也会觉得用不上。所以，修复Bug加上开发有用的Feature，才是正道。&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>HBaseCon West 2017 Session解读</title>
       <link>https://openinx.github.io/posts/2017-06-28-hbaseconwest2017/</link>
       <pubDate>Wed, 28 Jun 2017 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2017-06-28-hbaseconwest2017/</guid>
-      <description>HBaseCon West 2017的PPT解读如下：
-1. HBase at Xiaomi
-由小米的杨哲和张洸濠合作分享，两位是2016年新晋升的HBase Committer (ps: 小米目前总共产生了8位HBase Committer，其中2位HBase PMC，解决了数百个issue). 分享的一些亮点主要有：
-1. 0.94升级到0.98集群的一些经验。
-2. 小米内部HBase使用g1gc的一些经验。
-3. 2016年小米对社区做的一些开发和改进，包括但不限于顺序推送复制日志/优化Scan操作/开发异步客户端功能以及相关测试结果，等等。
-2. Apache HBase at DiDi (by Kang Yuan)
-主要分享了HBase在滴滴的一些实践经验，目前滴滴的HBase是基于0.98.21版本，然后将rsgroup这个功能迁移到了自己的分支，用来做业务隔离。另外，PPT中也提到通过将地理位置坐标进行GeoHash转换成一维byte存放到HBase中，可以解决查询一个点周边坐标的问题。
-3. Accordion: HBase Breathes with In-Memory Compaction (From Yahoo)
-有了InMemory-Compaction功能之后，HBase支持将Memstore直接Flush成一个ImmutableSegment，这个ImmutableSegment其实是一块内存空间，多次Memstore的Flush操作会导致产生多个ImmutableSegment，特定条件下，多个ImmtableSegment会进行In-Memory的Compaction，也就是多个ImmutableSegment完全在内存中合并成为一个大的ImmutableSegment（其中BASIC类型的InMemoryCompaction会保留所有数据，EAGER类型的InMemoryCompaction会清理冗余版本数据）。最终，这个大的ImmutableSegment还是要Flush到磁盘的，然后接着触发做磁盘上的Compaction操作。
-按照设计文档以及PPT的说明，InMemory-Compaction有以下好处：
-由于InMemoryCompaction会在内存中进行compaction， 不用频繁的Flush Memstore到Disk(Flush次数太多会造成storefile个数增长, storefile的增长会导致读性能严重下降)， 从而可以降低读操作延迟。 ImmtableSegment今后可能会和HFile的layout保持一致，这样Flush的速度将大幅提升。 对于行数据频繁更新的场景，InMemory-Compaction可以采用EAGER方式在内存中就清理掉冗余版本数据，节省了这部分数据落盘的代价。 最后，PPT测试数据也确实说明使用InMemoryCompaction后，写吞吐有较大幅度提升，读延迟有较大幅度下降。
-ps. In-memory Compaction由stack等6位成员共同完成(将在HBase2.0的release版本发布），这其中有两位美女工程师（PPT中的照片证明颜值确实很高），现在都已经是HBase的Committer了。 另外，In-memory compaction详细设计文档请参考：https://issues.apache.org/jira/browse/HBASE-13408
-4. Efficient and portable data processing with Apache Beam and HBase (By Google)
-这个演讲更多是来HBaseCon宣传下Apache Beam这个项目。 Apache Beam这个项目始于2016年2月份，近1年多的时间内就收到了来自全球178个贡献者的8600+提交，主要是希望提供一个统一的API用来同时处理Batch任务和Streaming任务，他的API后端可以接Apex/Flink/Spark/GoogleCloudDataFlow等服务，同时提供Java和Python的客户端SDK。这个东西就好比JDBC一样，提供了一个统一的借口，后端可以连接MySQL/Oracle/Postgresql/SQLServer等关系型数据库。我没理解错的话，这个东西应该是可以用来在HBase/MongoDB/HDFS/Cassandra/Kafka/BigTable/Spanner/Elasticsearch/GridFS/Hive/AMQP等(超过20种通用的存储服务)各种服务间实现数据transform。</description>
+      <description>&lt;p&gt;HBaseCon West 2017的PPT解读如下：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1. HBase at Xiaomi&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;由小米的杨哲和张洸濠合作分享，两位是2016年新晋升的HBase Committer (ps: 小米目前总共产生了8位HBase Committer，其中2位HBase PMC，解决了数百个issue).  分享的一些亮点主要有：&lt;/p&gt;
+&lt;p&gt;1. 0.94升级到0.98集群的一些经验。&lt;br&gt;
+2. 小米内部HBase使用g1gc的一些经验。&lt;br&gt;
+3. 2016年小米对社区做的一些开发和改进，包括但不限于顺序推送复制日志/优化Scan操作/开发异步客户端功能以及相关测试结果，等等。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;2. Apache HBase at DiDi (by Kang Yuan)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;主要分享了HBase在滴滴的一些实践经验，目前滴滴的HBase是基于0.98.21版本，然后将rsgroup这个功能迁移到了自己的分支，用来做业务隔离。另外，PPT中也提到通过将地理位置坐标进行&lt;a href=&#34;http://blog.jobbole.com/80633/&#34;&gt;GeoHash&lt;/a&gt;转换成一维byte存放到HBase中，可以解决查询一个点周边坐标的问题。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;3. Accordion: HBase Breathes with In-Memory Compaction (From Yahoo)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;有了InMemory-Compaction功能之后，HBase支持将Memstore直接Flush成一个ImmutableSegment，这个ImmutableSegment其实是一块内存空间，多次Memstore的Flush操作会导致产生多个ImmutableSegment，特定条件下，多个ImmtableSegment会进行In-Memory的Compaction，也就是多个ImmutableSegment完全在内存中合并成为一个大的ImmutableSegment（其中BASIC类型的InMemoryCompaction会保留所有数据，EAGER类型的InMemoryCompaction会清理冗余版本数据）。最终，这个大的ImmutableSegment还是要Flush到磁盘的，然后接着触发做磁盘上的Compaction操作。&lt;/p&gt;
+&lt;p&gt;按照设计文档以及PPT的说明，InMemory-Compaction有以下好处：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;由于InMemoryCompaction会在内存中进行compaction， 不用频繁的Flush Memstore到Disk(Flush次数太多会造成storefile个数增长, storefile的增长会导致读性能严重下降)， 从而可以降低读操作延迟。&lt;/li&gt;
+&lt;li&gt;ImmtableSegment今后可能会和HFile的layout保持一致，这样Flush的速度将大幅提升。&lt;/li&gt;
+&lt;li&gt;对于行数据频繁更新的场景，InMemory-Compaction可以采用EAGER方式在内存中就清理掉冗余版本数据，节省了这部分数据落盘的代价。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;最后，PPT测试数据也确实说明使用InMemoryCompaction后，写吞吐有较大幅度提升，读延迟有较大幅度下降。&lt;/p&gt;
+&lt;p&gt;ps. In-memory Compaction由stack等6位成员共同完成(将在HBase2.0的release版本发布），这其中有两位美女工程师（PPT中的照片证明颜值确实很高），现在都已经是HBase的Committer了。
+另外，In-memory compaction详细设计文档请参考：https://issues.apache.org/jira/browse/HBASE-13408&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;4. Efficient and portable data processing with Apache Beam and HBase (By Google)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;这个演讲更多是来HBaseCon宣传下&lt;a href=&#34;https://beam.apache.org/&#34;&gt;Apache Beam&lt;/a&gt;这个项目。
+Apache Beam这个项目始于2016年2月份，近1年多的时间内就收到了来自全球178个贡献者的8600+提交，主要是希望提供一个统一的API用来同时处理Batch任务和Streaming任务，他的API后端可以接Apex/Flink/Spark/GoogleCloudDataFlow等服务，同时提供Java和Python的客户端SDK。这个东西就好比JDBC一样，提供了一个统一的借口，后端可以连接MySQL/Oracle/Postgresql/SQLServer等关系型数据库。我没理解错的话，这个东西应该是可以用来在HBase/MongoDB/HDFS/Cassandra/Kafka/BigTable/Spanner/Elasticsearch/GridFS/Hive/AMQP等(超过20种通用的存储服务)各种服务间实现数据transform。&lt;/p&gt;</description>
     </item>
-    
   </channel>
 </rss>

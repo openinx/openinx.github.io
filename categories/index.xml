@@ -5,9 +5,12 @@
     <link>https://openinx.github.io/categories/</link>
     <description>Recent content in Categories on Openinx Blog</description>
     <image>
+      <title>Openinx Blog</title>
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- gohugo.io</generator><atom:link href="https://openinx.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <generator>Hugo -- 0.143.1</generator>
+    <language>en</language>
+    <atom:link href="https://openinx.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>

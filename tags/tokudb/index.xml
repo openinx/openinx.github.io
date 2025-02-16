@@ -5,27 +5,37 @@
     <link>https://openinx.github.io/tags/tokudb/</link>
     <description>Recent content in TokuDB on Openinx Blog</description>
     <image>
+      <title>Openinx Blog</title>
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- gohugo.io</generator>
-    <lastBuildDate>Wed, 25 Nov 2015 13:27:08 +0800</lastBuildDate><atom:link href="https://openinx.github.io/tags/tokudb/index.xml" rel="self" type="application/rss+xml" />
+    <generator>Hugo -- 0.143.1</generator>
+    <language>en</language>
+    <lastBuildDate>Wed, 25 Nov 2015 13:27:08 +0800</lastBuildDate>
+    <atom:link href="https://openinx.github.io/tags/tokudb/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>TokuDB的索引结构：分形树的实现</title>
       <link>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</link>
       <pubDate>Wed, 25 Nov 2015 13:27:08 +0800</pubDate>
-      
       <guid>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</guid>
-      <description>本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query, Insert/Delete/Update操作, 并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。
-分形树简介 分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的B+树)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。
-工业界实现分形树最重要的产品就是Tokutek公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在Github上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为TokuDB， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为TokuMX。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。
-本文主要讨论的是TokuDB的ft-index。 ft-index相比B+树的几个重要特点有：
-从理论复杂度和测试性能两个角度上看， ft-index的Insert/Delete/Update操作性能优于B+树。 但是读操作性能低于B+树。 ft-index采用更大的索引页和数据页（ft-index默认为4M, InnoDB默认为16K）， 这使得ft-index的数据页和索引页的压缩比更高。也就是说，在打开索引页和数据页压缩的情况下，插入等量的数据， ft-index占用的存储空间更少。 ft-index支持在线修改DDL (Hot Schema Change)。 简单来讲，就是在做DDL操作的同时(例如添加索引)，用户依然可以执行写入操作， 这个特点是ft-index树形结构天然支持的。 由于篇幅限制，本文并不对Hot Schema Change的实现做具体描述。 此外， ft-index还支持事务(ACID)以及事务的MVCC(Multiple Version Cocurrency Control 多版本并发控制)， 支持崩溃恢复。
-正因为上述特点， Percona公司宣称TokuDB一方面带给客户极大的性能提升， 另一方面还降低了客户的存储使用成本。
-ft-index的磁盘存储结构 ft-index的索引结构图如下(在这里为了方便描述和理解，我对ft-index的二进制存储做了一定程度简化和抽象， 具体的二进制存储格式可以参考我的博客)：
-在下图中， 灰色区域表示ft-index分形树的一个页，绿色区域表示一个键值，两格绿色区域之间表示一个儿子指针。 BlockNum表示儿子指针指向的页的偏移量。Fanout表示分形树的扇出，也就是儿子指针的个数。 NodeSize表示一个页占用的字节数。NonLeafNode表示当前页是一个非叶子节点，LeafNode表示当前页是一个叶子节点，叶子节点是最底层的存放Key-value键值对的节点， 非叶子节点不存放value。 Heigth表示树的高度， 根节点的高度为3， 根节点下一层节点的高度为2， 最底层叶子节点的高度为1。Depth表示树的深度，根节点的深度为0， 根节点的下一层节点深度为1。
-分形树的树形结构非常类似于B+树, 它的树形结构由若干个节点组成（我们称之为Node或者Block，在InnoDB中，我们称之为Page或者页）。 每个节点由一组有序的键值组成。假设一个节点的键值序列为[3, 8], 那么这个键值将(-00, +00)整个区间划分为(-00, 3), [3, 8), [8, +00) 这样3个区间， 每一个区间就对应着一个儿子指针（Child指针）。 在B+树中， Child指针一般指向一个页， 而在分形树中，每一个Child指针除了需要指向一个Node的地址(BlockNum)之外，还会带有一个Message Buffer (msg_buffer)， 这个Message Buffer 是一个先进先出(FIFO)的队列，用来存放Insert/Delete/Update/HotSchemaChange这样的更新操作。</description>
+      <description>&lt;blockquote&gt;
+&lt;p&gt;本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query,  Insert/Delete/Update操作,  并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。&lt;/p&gt;&lt;/blockquote&gt;
+&lt;h3 id=&#34;分形树简介&#34;&gt;分形树简介&lt;/h3&gt;
+&lt;p&gt;分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的&lt;a href=&#34;https://en.wikipedia.org/wiki/B%2B_tree&#34;&gt;B+树&lt;/a&gt;)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。&lt;/p&gt;
+&lt;p&gt;工业界实现分形树最重要的产品就是&lt;a href=&#34;https://github.com/Tokutek&#34;&gt;Tokutek&lt;/a&gt;公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在&lt;a href=&#34;https://github.com/percona/PerconaFT&#34;&gt;Github&lt;/a&gt;上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为&lt;a href=&#34;https://github.com/percona/tokudb-engine&#34;&gt;TokuDB&lt;/a&gt;， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为&lt;a href=&#34;https://github.com/Tokutek/mongo&#34;&gt;TokuMX&lt;/a&gt;。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。&lt;/p&gt;
+&lt;p&gt;本文主要讨论的是TokuDB的ft-index。 ft-index相比B+树的几个重要特点有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;从理论复杂度和测试性能两个角度上看， ft-index的Insert/Delete/Update操作性能优于B+树。  但是读操作性能低于B+树。&lt;/li&gt;
+&lt;li&gt;ft-index采用更大的索引页和数据页（ft-index默认为4M, InnoDB默认为16K）， 这使得ft-index的数据页和索引页的压缩比更高。也就是说，在打开索引页和数据页压缩的情况下，插入等量的数据， ft-index占用的存储空间更少。&lt;/li&gt;
+&lt;li&gt;ft-index支持在线修改DDL (Hot Schema Change)。 简单来讲，就是在做DDL操作的同时(例如添加索引)，用户依然可以执行写入操作， 这个特点是ft-index树形结构天然支持的。 由于篇幅限制，本文并不对Hot Schema Change的实现做具体描述。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;此外， ft-index还支持事务(ACID)以及事务的MVCC(Multiple Version Cocurrency Control 多版本并发控制)， 支持崩溃恢复。&lt;/p&gt;
+&lt;p&gt;正因为上述特点，  Percona公司宣称TokuDB一方面带给客户极大的性能提升， 另一方面还降低了客户的存储使用成本。&lt;/p&gt;
+&lt;h3 id=&#34;ft-index的磁盘存储结构&#34;&gt;ft-index的磁盘存储结构&lt;/h3&gt;
+&lt;p&gt;ft-index的索引结构图如下(在这里为了方便描述和理解，我对ft-index的二进制存储做了一定程度简化和抽象， 具体的二进制存储格式可以参考&lt;a href=&#34;http://openinx.github.io/2015/12/02/ft-layout/&#34;&gt;我的博客&lt;/a&gt;)：&lt;/p&gt;
+&lt;p&gt;在下图中， 灰色区域表示ft-index分形树的一个页，绿色区域表示一个键值，两格绿色区域之间表示一个儿子指针。 BlockNum表示儿子指针指向的页的偏移量。Fanout表示分形树的扇出，也就是儿子指针的个数。 NodeSize表示一个页占用的字节数。NonLeafNode表示当前页是一个非叶子节点，LeafNode表示当前页是一个叶子节点，叶子节点是最底层的存放Key-value键值对的节点， 非叶子节点不存放value。 Heigth表示树的高度， 根节点的高度为3， 根节点下一层节点的高度为2， 最底层叶子节点的高度为1。Depth表示树的深度，根节点的深度为0， 根节点的下一层节点深度为1。&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/tokudb/ft-index-tree-structure.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;分形树的树形结构非常类似于B+树, 它的树形结构由若干个节点组成（我们称之为Node或者Block，在InnoDB中，我们称之为Page或者页）。 每个节点由一组有序的键值组成。假设一个节点的键值序列为[3, 8],  那么这个键值将(-00, +00)整个区间划分为(-00, 3), [3, 8), [8, +00) 这样3个区间， 每一个区间就对应着一个儿子指针（Child指针）。 在B+树中， Child指针一般指向一个页， 而在分形树中，每一个Child指针除了需要指向一个Node的地址(BlockNum)之外，还会带有一个Message Buffer (msg_buffer)， 这个Message Buffer 是一个先进先出(FIFO)的队列，用来存放Insert/Delete/Update/HotSchemaChange这样的更新操作。&lt;/p&gt;</description>
     </item>
-    
   </channel>
 </rss>
