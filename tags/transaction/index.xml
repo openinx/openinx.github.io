@@ -9,7 +9,7 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.143.1</generator>
+    <generator>Hugo -- 0.142.0</generator>
     <language>en</language>
     <lastBuildDate>Fri, 01 Jul 2022 12:00:24 +0800</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/transaction/index.xml" rel="self" type="application/rss+xml" />
@@ -38,7 +38,8 @@
       <pubDate>Sun, 13 Dec 2015 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</guid>
       <description>&lt;blockquote&gt;
-&lt;p&gt;本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。&lt;/p&gt;&lt;/blockquote&gt;
+&lt;p&gt;本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。&lt;/p&gt;
+&lt;/blockquote&gt;
 &lt;h3 id=&#34;背景介绍&#34;&gt;背景介绍&lt;/h3&gt;
 &lt;p&gt;在传统的关系型数据库（例如Oracle, MySQL, SQLServer）中，事务可以说是研发和讨论最核心内容。而事务最核心的性质就是ACID。 其中 A表示事务的原子性，也就是组成事务的所有子任务只有两种结果： 要么随着事务的提交，所有子任务都成功执行；要么随着事务的回滚，所有子任务都撤销。 C表示一致性，也就是无论事务提交或者回滚，都不能破坏数据的一致性约束，这些一致性约束包括键值唯一约束、键值关联关系约束等。I表示隔离性，隔离性一般是针对多个并发事务而言的，也就是在同一个时间点，t1事务和t2事务读取的数据应该是隔离的，这两个事务就好像进了同一酒店的两间房间一样，各自在各自的房间里面活动，他们相互之间并不能看到各自在干嘛。D表示持久性，这个性质保证了一个事务一旦承诺用户成功提交，那么即便是后继数据库进程crash或者操作系统crash，只要磁盘数据没坏，那么下次启动数据库后，这个事务的执行结果仍然可以读取到。&lt;/p&gt;
 &lt;p&gt;TokuDB目前完全支持事务的ACID。 从实现上看， 由于TokuDB采用的&lt;a href=&#34;https://openinx.github.io/posts/2015-11-25-ft-index-implement/&#34;&gt;分形树&lt;/a&gt;作为索引，而InnoDB采用B+树作为索引结构，因而TokuDB在事务的实现上和InnoDB有很大不同。 本文主要讲讲TokuDB的事务隔离性的实现，也就是常提到的多版本并发控制(MVCC)。在InnoDB中， 设计了redo和undo两种日志，redo存放页的物理修改日志，用来保证事务的持久性； undo存放事务的逻辑修改日志，它实际存放了一条记录在多个并发事务下的多个版本，用来实现事务的隔离性(MVCC)和回滚操作。&lt;/p&gt;
