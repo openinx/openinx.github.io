@@ -9,7 +9,7 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.142.0</generator>
+    <generator>Hugo -- 0.143.1</generator>
     <language>en</language>
     <lastBuildDate>Fri, 01 Jul 2022 12:00:24 +0800</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/database/index.xml" rel="self" type="application/rss+xml" />
@@ -196,8 +196,7 @@ in hadoop 2.9.3 and after that the HBASE-21946 will get resolved). we think the 
       <pubDate>Sun, 13 Dec 2015 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</guid>
       <description>&lt;blockquote&gt;
-&lt;p&gt;本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。&lt;/p&gt;
-&lt;/blockquote&gt;
+&lt;p&gt;本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。&lt;/p&gt;&lt;/blockquote&gt;
 &lt;h3 id=&#34;背景介绍&#34;&gt;背景介绍&lt;/h3&gt;
 &lt;p&gt;在传统的关系型数据库（例如Oracle, MySQL, SQLServer）中，事务可以说是研发和讨论最核心内容。而事务最核心的性质就是ACID。 其中 A表示事务的原子性，也就是组成事务的所有子任务只有两种结果： 要么随着事务的提交，所有子任务都成功执行；要么随着事务的回滚，所有子任务都撤销。 C表示一致性，也就是无论事务提交或者回滚，都不能破坏数据的一致性约束，这些一致性约束包括键值唯一约束、键值关联关系约束等。I表示隔离性，隔离性一般是针对多个并发事务而言的，也就是在同一个时间点，t1事务和t2事务读取的数据应该是隔离的，这两个事务就好像进了同一酒店的两间房间一样，各自在各自的房间里面活动，他们相互之间并不能看到各自在干嘛。D表示持久性，这个性质保证了一个事务一旦承诺用户成功提交，那么即便是后继数据库进程crash或者操作系统crash，只要磁盘数据没坏，那么下次启动数据库后，这个事务的执行结果仍然可以读取到。&lt;/p&gt;
 &lt;p&gt;TokuDB目前完全支持事务的ACID。 从实现上看， 由于TokuDB采用的&lt;a href=&#34;https://openinx.github.io/posts/2015-11-25-ft-index-implement/&#34;&gt;分形树&lt;/a&gt;作为索引，而InnoDB采用B+树作为索引结构，因而TokuDB在事务的实现上和InnoDB有很大不同。 本文主要讲讲TokuDB的事务隔离性的实现，也就是常提到的多版本并发控制(MVCC)。在InnoDB中， 设计了redo和undo两种日志，redo存放页的物理修改日志，用来保证事务的持久性； undo存放事务的逻辑修改日志，它实际存放了一条记录在多个并发事务下的多个版本，用来实现事务的隔离性(MVCC)和回滚操作。&lt;/p&gt;
@@ -222,8 +221,7 @@ in hadoop 2.9.3 and after that the HBASE-21946 will get resolved). we think the 
       <pubDate>Wed, 25 Nov 2015 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</guid>
       <description>&lt;blockquote&gt;
-&lt;p&gt;本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query,  Insert/Delete/Update操作,  并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。&lt;/p&gt;
-&lt;/blockquote&gt;
+&lt;p&gt;本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query,  Insert/Delete/Update操作,  并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。&lt;/p&gt;&lt;/blockquote&gt;
 &lt;h3 id=&#34;分形树简介&#34;&gt;分形树简介&lt;/h3&gt;
 &lt;p&gt;分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的&lt;a href=&#34;https://en.wikipedia.org/wiki/B%2B_tree&#34;&gt;B+树&lt;/a&gt;)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。&lt;/p&gt;
 &lt;p&gt;工业界实现分形树最重要的产品就是&lt;a href=&#34;https://github.com/Tokutek&#34;&gt;Tokutek&lt;/a&gt;公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在&lt;a href=&#34;https://github.com/percona/PerconaFT&#34;&gt;Github&lt;/a&gt;上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为&lt;a href=&#34;https://github.com/percona/tokudb-engine&#34;&gt;TokuDB&lt;/a&gt;， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为&lt;a href=&#34;https://github.com/Tokutek/mongo&#34;&gt;TokuMX&lt;/a&gt;。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。&lt;/p&gt;
@@ -257,8 +255,7 @@ in hadoop 2.9.3 and after that the HBASE-21946 will get resolved). we think the 
 &lt;li&gt;vitess 对比传统关系型数据库及NoSQL的优点和缺点&lt;/li&gt;
 &lt;/ul&gt;
 &lt;blockquote&gt;
-&lt;p&gt;小插曲&lt;/p&gt;
-&lt;/blockquote&gt;
+&lt;p&gt;小插曲&lt;/p&gt;&lt;/blockquote&gt;
 &lt;p&gt;为了尝试使用markdown制作在线的PPT， 我尝试了一些方案。最终选在了&lt;a href=&#34;http://remarkjs.com/&#34;&gt;remarkjs&lt;/a&gt;来制作在线版本的ppt，原因是:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;可以实现ppt文件的版本控制。这样在git中可以清晰的看到我的修改的增量。&lt;/li&gt;

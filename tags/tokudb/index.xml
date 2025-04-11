@@ -9,7 +9,7 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.142.0</generator>
+    <generator>Hugo -- 0.143.1</generator>
     <language>en</language>
     <lastBuildDate>Wed, 25 Nov 2015 13:27:08 +0800</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/tokudb/index.xml" rel="self" type="application/rss+xml" />
@@ -19,8 +19,7 @@
       <pubDate>Wed, 25 Nov 2015 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</guid>
       <description>&lt;blockquote&gt;
-&lt;p&gt;本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query,  Insert/Delete/Update操作,  并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。&lt;/p&gt;
-&lt;/blockquote&gt;
+&lt;p&gt;本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query,  Insert/Delete/Update操作,  并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。&lt;/p&gt;&lt;/blockquote&gt;
 &lt;h3 id=&#34;分形树简介&#34;&gt;分形树简介&lt;/h3&gt;
 &lt;p&gt;分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的&lt;a href=&#34;https://en.wikipedia.org/wiki/B%2B_tree&#34;&gt;B+树&lt;/a&gt;)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。&lt;/p&gt;
 &lt;p&gt;工业界实现分形树最重要的产品就是&lt;a href=&#34;https://github.com/Tokutek&#34;&gt;Tokutek&lt;/a&gt;公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在&lt;a href=&#34;https://github.com/percona/PerconaFT&#34;&gt;Github&lt;/a&gt;上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为&lt;a href=&#34;https://github.com/percona/tokudb-engine&#34;&gt;TokuDB&lt;/a&gt;， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为&lt;a href=&#34;https://github.com/Tokutek/mongo&#34;&gt;TokuMX&lt;/a&gt;。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。&lt;/p&gt;

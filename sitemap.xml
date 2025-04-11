@@ -2,11 +2,32 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://openinx.github.io/tags/bigdata/</loc>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
+  </url><url>
+    <loc>https://openinx.github.io/tags/datalake/</loc>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
+  </url><url>
+    <loc>https://openinx.github.io/tags/iceberg/</loc>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
+  </url><url>
+    <loc>https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/</loc>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
+  </url><url>
+    <loc>https://openinx.github.io/tags/lakehouse/</loc>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
+  </url><url>
     <loc>https://openinx.github.io/</loc>
-    <lastmod>2025-02-16T10:47:24+08:00</lastmod>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/posts/</loc>
-    <lastmod>2025-02-16T10:47:24+08:00</lastmod>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
+  </url><url>
+    <loc>https://openinx.github.io/tags/summit/</loc>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
+  </url><url>
+    <loc>https://openinx.github.io/tags/</loc>
+    <lastmod>2025-04-10T17:12:24-07:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/about/</loc>
     <lastmod>2022-07-17T11:07:35+08:00</lastmod>
@@ -18,9 +39,6 @@
     <lastmod>2022-07-01T12:00:24+08:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/tags/storage-engine/</loc>
-    <lastmod>2022-07-01T12:00:24+08:00</lastmod>
-  </url><url>
-    <loc>https://openinx.github.io/tags/</loc>
     <lastmod>2022-07-01T12:00:24+08:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/tags/transaction/</loc>

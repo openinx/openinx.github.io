@@ -9,10 +9,45 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.142.0</generator>
+    <generator>Hugo -- 0.143.1</generator>
     <language>en</language>
-    <lastBuildDate>Fri, 01 Jul 2022 12:00:24 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 10 Apr 2025 17:12:24 -0700</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>BigData</title>
+      <link>https://openinx.github.io/tags/bigdata/</link>
+      <pubDate>Thu, 10 Apr 2025 17:12:24 -0700</pubDate>
+      <guid>https://openinx.github.io/tags/bigdata/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>DataLake</title>
+      <link>https://openinx.github.io/tags/datalake/</link>
+      <pubDate>Thu, 10 Apr 2025 17:12:24 -0700</pubDate>
+      <guid>https://openinx.github.io/tags/datalake/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Iceberg</title>
+      <link>https://openinx.github.io/tags/iceberg/</link>
+      <pubDate>Thu, 10 Apr 2025 17:12:24 -0700</pubDate>
+      <guid>https://openinx.github.io/tags/iceberg/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>LakeHouse</title>
+      <link>https://openinx.github.io/tags/lakehouse/</link>
+      <pubDate>Thu, 10 Apr 2025 17:12:24 -0700</pubDate>
+      <guid>https://openinx.github.io/tags/lakehouse/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Summit</title>
+      <link>https://openinx.github.io/tags/summit/</link>
+      <pubDate>Thu, 10 Apr 2025 17:12:24 -0700</pubDate>
+      <guid>https://openinx.github.io/tags/summit/</guid>
+      <description></description>
+    </item>
     <item>
       <title>Database</title>
       <link>https://openinx.github.io/tags/database/</link>
