@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>LakeHouse on Openinx Blog</title>
+    <link>https://openinx.github.io/tags/lakehouse/</link>
+    <description>Recent content in LakeHouse on Openinx Blog</description>
+    <image>
+      <title>Openinx Blog</title>
+      <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
+      <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
+    </image>
+    <generator>Hugo -- 0.143.1</generator>
+    <language>en</language>
+    <lastBuildDate>Thu, 10 Apr 2025 17:12:24 -0700</lastBuildDate>
+    <atom:link href="https://openinx.github.io/tags/lakehouse/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Iceberg Summit 2025 - Part 1</title>
+      <link>https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/</link>
+      <pubDate>Thu, 10 Apr 2025 17:12:24 -0700</pubDate>
+      <guid>https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/</guid>
+      <description>&lt;p&gt;I attended the Apache Iceberg Summit 2025 in the US in the past two days. The conference was held at the &lt;strong&gt;Hyatt Regency Hotel&lt;/strong&gt; next to Union Square in downtown San Francisco. This time, two floors of the hotel were rented as the venue. Mainstream companies in the Data field are basically sponsors of the conference, including AWS, Databricks, Snowflake, Cloudera, Dremio, Microsoft, Airbyte, CelerData, Confluent, eltloop, Google, IMB, Minio, Qlik, Redpanda, Starburst, StreamNative, e6data, daft, PuppyGraph, RisingWave, Telmai, wherobots. Sponsorship is a booth that the company exchanged for thoudsands of dollars, and had the opportunity to promote and showcase its products to the audience. According to the known information, I speculate that the sponsorship fee is pretty rich. Even so, there are still many companies that want to spend money but have not been able to grab a spot. The target audience for on-site meetings is 500 people, and the target audience for online meetings is 4000 people. I don&amp;rsquo;t have overall data, so it&amp;rsquo;s hard to say how many people are on-site. Sensationally, there are so many people that we have to speak loudly to be heard, and my positions need to be adjusted at any time because I need to make way for others. It can only be said that after Iceberg became the de facto standard in Global Market and was aggressively acquired by Databricks last year, its popularity has reached a new peak this year.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
