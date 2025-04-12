@@ -11,8 +11,15 @@
     </image>
     <generator>Hugo -- 0.143.1</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 10 Apr 2025 17:12:24 -0700</lastBuildDate>
+    <lastBuildDate>Fri, 11 Apr 2025 21:56:43 -0700</lastBuildDate>
     <atom:link href="https://openinx.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Iceberg Summit 2025 - Part 2</title>
+      <link>https://openinx.github.io/posts/2025-04-11-iceberg-summit-2025-2/</link>
+      <pubDate>Fri, 11 Apr 2025 21:56:43 -0700</pubDate>
+      <guid>https://openinx.github.io/posts/2025-04-11-iceberg-summit-2025-2/</guid>
+      <description>&lt;p&gt;This is the second article of my thoughts for Iceberg Summit 2025 (Here is &lt;a href=&#34;https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/&#34;&gt;Part-1&lt;/a&gt;), which is not limited to Iceberg but focuses on Data Lake. I am trying to share what these creative teams are doing in this field, why it is a problem, what the solution is, and how it will develop in the future. These insights come from various sharing, discussions, and debates, but are limited by my personal understanding. Anyway, I hope this article can inspire everyone.&lt;/p&gt;</description>
+    </item>
     <item>
       <title>Iceberg Summit 2025 - Part 1</title>
       <link>https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/</link>
