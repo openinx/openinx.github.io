@@ -32,17 +32,8 @@
       <link>https://openinx.github.io/about/</link>
       <pubDate>Sun, 17 Jul 2022 11:07:35 +0800</pubDate>
       <guid>https://openinx.github.io/about/</guid>
-      <description>&lt;p&gt;我叫 &lt;strong&gt;OpenInx&lt;/strong&gt;, 这个ID的全文是Open in X，象征着探索未知的世界。我热衷探索，喜欢开源软件。我对数据库和编程语言抱有极大兴趣和热情，希望和志同道合的朋友共同成长进步。&lt;/p&gt;
-&lt;p&gt;&lt;a href=&#34;https://openinx.github.io/posts/2012-01-01-my-share/&#34;&gt;我的公开分享&lt;/a&gt;&lt;/p&gt;
-&lt;h4 id=&#34;heading&#34;&gt;&lt;/h4&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href=&#34;https://github.com/openinx&#34;&gt;GitHub&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://www.linkedin.com/in/openinx/&#34;&gt;Linkedin&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://www.weibo.com/u/2250102240&#34;&gt;Weibo&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://openinx.github.io/posts/index.xml&#34;&gt;RSS&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;另外，欢迎扫描如下二维码，关注我的个人公众号，届时将同步博客文章到公众号。&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/qrcode_for_gh_0097a7ab6d3c_344.jpg&#34;&gt;&lt;/p&gt;</description>
+      <description>&lt;p&gt;Hi, I&amp;rsquo;m &lt;a href=&#34;https://www.linkedin.com/in/openinx/&#34;&gt;Zheng Hu&lt;/a&gt; — a Staff Software Engineer with deep roots in big data infrastructure and open-source communities. I&amp;rsquo;m a PMC member of &lt;a href=&#34;https://hbase.apache.org/&#34;&gt;Apache HBase&lt;/a&gt; and &lt;a href=&#34;https://iceberg.apache.org/&#34;&gt;Apache Iceberg&lt;/a&gt;, and the author of the book &amp;lsquo;&lt;a href=&#34;https://www.amazon.com/HBase-Principles-Practice-Chinese-ZHENG/dp/7111634950&#34;&gt;HBase Principles and Practice&lt;/a&gt;&amp;rsquo;. Over the past decade, I’ve worked at ByteDance, Alibaba Cloud, Xiaomi, and more, building large-scale systems in cloud data platforms, distributed filesystems, and data lake analytics.&lt;/p&gt;
+&lt;p&gt;Currently, I lead the EMR open-source engine team at ByteDance, where I’ve built foundational services like &lt;a href=&#34;https://www.volcengine.com/docs/6491/149821&#34;&gt;Proton&lt;/a&gt;, a distributed filesystem optimized for object storage, and launched a fully-managed StarRocks analytics service. I actively contribute to open-source, speak at conferences like Flink Forward and HBaseCon, and share technical insights on my blog.&lt;/p&gt;</description>
     </item>
     <item>
       <title>SQLServer的列存更新方案</title>
