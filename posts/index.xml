@@ -11,8 +11,15 @@
     </image>
     <generator>Hugo -- 0.143.1</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 04 May 2025 23:16:23 -0700</lastBuildDate>
+    <lastBuildDate>Sun, 11 May 2025 14:50:07 -0700</lastBuildDate>
     <atom:link href="https://openinx.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Thoughts of SaaS services</title>
+      <link>https://openinx.github.io/posts/2025-05-11-us-saas/</link>
+      <pubDate>Sun, 11 May 2025 14:50:07 -0700</pubDate>
+      <guid>https://openinx.github.io/posts/2025-05-11-us-saas/</guid>
+      <description>&lt;p&gt;I have been working at a US company for almost a month recently. An interesting fact is that I have counted the SaaS services I have used for specific scenarios since joining, and surprisingly, there are as many as 23 of them. All of these SaaS services are provided by third-party companies. In other words, Databricks is a customer of all these companies. This aroused my curiosity and made me want to learn about the situation of these companies.&lt;/p&gt;</description>
+    </item>
     <item>
       <title>What I learned from ByteDance</title>
       <link>https://openinx.github.io/posts/2025-05-04-review-bytedance-journey/</link>
