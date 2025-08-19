@@ -9,7 +9,7 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.143.1</generator>
+    <generator>Hugo -- 0.125.7</generator>
     <language>en</language>
     <lastBuildDate>Sun, 04 May 2025 23:16:23 -0700</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/bytedance/index.xml" rel="self" type="application/rss+xml" />
@@ -18,7 +18,7 @@
       <link>https://openinx.github.io/posts/2025-05-04-review-bytedance-journey/</link>
       <pubDate>Sun, 04 May 2025 23:16:23 -0700</pubDate>
       <guid>https://openinx.github.io/posts/2025-05-04-review-bytedance-journey/</guid>
-      <description>&lt;p&gt;I recently had the pleasure of joining Databricks, but I often reflect on my profoundly rewarding experience at ByteDance. Before joining ByteDance, I was a software engineer who had written code for a decade. My core responsibility was to tackle system design and code development for complex software while ensuring robust operations in production environments. At ByteDance, however, I led a 16-person technical team (mostly Senior+ engineers) responsible for building the competitiveness of ByteDance’s public cloud EMR open-source engines—a role that was immensely challenging yet transformative for me. Through this article, I want to share what I gained from working at ByteDance.&lt;/p&gt;</description>
+      <description>I recently had the pleasure of joining Databricks, but I often reflect on my profoundly rewarding experience at ByteDance. Before joining ByteDance, I was a software engineer who had written code for a decade. My core responsibility was to tackle system design and code development for complex software while ensuring robust operations in production environments. At ByteDance, however, I led a 16-person technical team (mostly Senior+ engineers) responsible for building the competitiveness of ByteDance’s public cloud EMR open-source engines—a role that was immensely challenging yet transformative for me.</description>
     </item>
   </channel>
 </rss>

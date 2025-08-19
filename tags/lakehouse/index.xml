@@ -9,7 +9,7 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.143.1</generator>
+    <generator>Hugo -- 0.125.7</generator>
     <language>en</language>
     <lastBuildDate>Fri, 11 Apr 2025 21:56:43 -0700</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/lakehouse/index.xml" rel="self" type="application/rss+xml" />
@@ -18,14 +18,14 @@
       <link>https://openinx.github.io/posts/2025-04-11-iceberg-summit-2025-2/</link>
       <pubDate>Fri, 11 Apr 2025 21:56:43 -0700</pubDate>
       <guid>https://openinx.github.io/posts/2025-04-11-iceberg-summit-2025-2/</guid>
-      <description>&lt;p&gt;This is the second article of my thoughts for Iceberg Summit 2025 (Here is &lt;a href=&#34;https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/&#34;&gt;Part-1&lt;/a&gt;), which is not limited to Iceberg but focuses on Data Lake. I am trying to share what these creative teams are doing in this field, why it is a problem, what the solution is, and how it will develop in the future. These insights come from various sharing, discussions, and debates, but are limited by my personal understanding. Anyway, I hope this article can inspire everyone.&lt;/p&gt;</description>
+      <description>This is the second article of my thoughts for Iceberg Summit 2025 (Here is Part-1), which is not limited to Iceberg but focuses on Data Lake. I am trying to share what these creative teams are doing in this field, why it is a problem, what the solution is, and how it will develop in the future. These insights come from various sharing, discussions, and debates, but are limited by my personal understanding.</description>
     </item>
     <item>
       <title>Iceberg Summit 2025 - Part 1</title>
       <link>https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/</link>
       <pubDate>Thu, 10 Apr 2025 17:12:24 -0700</pubDate>
       <guid>https://openinx.github.io/posts/2025-04-10-iceberg-summit-2025-1/</guid>
-      <description>&lt;p&gt;I attended the Apache Iceberg Summit 2025 in the US in the past two days. The conference was held at the &lt;strong&gt;Hyatt Regency Hotel&lt;/strong&gt; next to Union Square in downtown San Francisco. This time, two floors of the hotel were rented as the venue. Mainstream companies in the Data field are basically sponsors of the conference, including AWS, Databricks, Snowflake, Cloudera, Dremio, Microsoft, Airbyte, CelerData, Confluent, eltloop, Google, IMB, Minio, Qlik, Redpanda, Starburst, StreamNative, e6data, daft, PuppyGraph, RisingWave, Telmai, wherobots. Sponsorship is a booth that the company exchanged for thoudsands of dollars, and had the opportunity to promote and showcase its products to the audience. According to the known information, I speculate that the sponsorship fee is pretty rich. Even so, there are still many companies that want to spend money but have not been able to grab a spot. The target audience for on-site meetings is 500 people, and the target audience for online meetings is 4000 people. I don&amp;rsquo;t have overall data, so it&amp;rsquo;s hard to say how many people are on-site. Sensationally, there are so many people that we have to speak loudly to be heard, and my positions need to be adjusted at any time because I need to make way for others. It can only be said that after Iceberg became the de facto standard in Global Market and Tabular was aggressively acquired by Databricks last year, its popularity has reached a new peak this year.&lt;/p&gt;</description>
+      <description>I attended the Apache Iceberg Summit 2025 in the US in the past two days. The conference was held at the Hyatt Regency Hotel next to Union Square in downtown San Francisco. This time, two floors of the hotel were rented as the venue. Mainstream companies in the Data field are basically sponsors of the conference, including AWS, Databricks, Snowflake, Cloudera, Dremio, Microsoft, Airbyte, CelerData, Confluent, eltloop, Google, IMB, Minio, Qlik, Redpanda, Starburst, StreamNative, e6data, daft, PuppyGraph, RisingWave, Telmai, wherobots.</description>
     </item>
   </channel>
 </rss>

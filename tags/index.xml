@@ -9,168 +9,154 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.143.1</generator>
+    <generator>Hugo -- 0.125.7</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 11 May 2025 14:50:07 -0700</lastBuildDate>
+    <lastBuildDate>Sun, 04 May 2025 23:16:23 -0700</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>AI</title>
       <link>https://openinx.github.io/tags/ai/</link>
-      <pubDate>Sun, 11 May 2025 14:50:07 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/ai/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>Databricks</title>
-      <link>https://openinx.github.io/tags/databricks/</link>
-      <pubDate>Sun, 11 May 2025 14:50:07 -0700</pubDate>
-      <guid>https://openinx.github.io/tags/databricks/</guid>
-      <description></description>
-    </item>
-    <item>
-      <title>Saas</title>
-      <link>https://openinx.github.io/tags/saas/</link>
-      <pubDate>Sun, 11 May 2025 14:50:07 -0700</pubDate>
-      <guid>https://openinx.github.io/tags/saas/</guid>
       <description></description>
     </item>
     <item>
       <title>ByteDance</title>
       <link>https://openinx.github.io/tags/bytedance/</link>
-      <pubDate>Sun, 04 May 2025 23:16:23 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/bytedance/</guid>
       <description></description>
     </item>
     <item>
       <title>Career</title>
       <link>https://openinx.github.io/tags/career/</link>
-      <pubDate>Sun, 04 May 2025 23:16:23 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/career/</guid>
       <description></description>
     </item>
     <item>
       <title>Data</title>
       <link>https://openinx.github.io/tags/data/</link>
-      <pubDate>Sun, 04 May 2025 23:16:23 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/data/</guid>
       <description></description>
     </item>
     <item>
       <title>BigData</title>
       <link>https://openinx.github.io/tags/bigdata/</link>
-      <pubDate>Fri, 11 Apr 2025 21:56:43 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/bigdata/</guid>
       <description></description>
     </item>
     <item>
       <title>DataLake</title>
       <link>https://openinx.github.io/tags/datalake/</link>
-      <pubDate>Fri, 11 Apr 2025 21:56:43 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/datalake/</guid>
       <description></description>
     </item>
     <item>
       <title>Iceberg</title>
       <link>https://openinx.github.io/tags/iceberg/</link>
-      <pubDate>Fri, 11 Apr 2025 21:56:43 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/iceberg/</guid>
       <description></description>
     </item>
     <item>
       <title>LakeHouse</title>
       <link>https://openinx.github.io/tags/lakehouse/</link>
-      <pubDate>Fri, 11 Apr 2025 21:56:43 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/lakehouse/</guid>
       <description></description>
     </item>
     <item>
       <title>Summit</title>
       <link>https://openinx.github.io/tags/summit/</link>
-      <pubDate>Fri, 11 Apr 2025 21:56:43 -0700</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/summit/</guid>
       <description></description>
     </item>
     <item>
       <title>Database</title>
       <link>https://openinx.github.io/tags/database/</link>
-      <pubDate>Fri, 01 Jul 2022 12:00:24 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/database/</guid>
       <description></description>
     </item>
     <item>
       <title>Storage Engine</title>
       <link>https://openinx.github.io/tags/storage-engine/</link>
-      <pubDate>Fri, 01 Jul 2022 12:00:24 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/storage-engine/</guid>
       <description></description>
     </item>
     <item>
       <title>Transaction</title>
       <link>https://openinx.github.io/tags/transaction/</link>
-      <pubDate>Fri, 01 Jul 2022 12:00:24 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/transaction/</guid>
       <description></description>
     </item>
     <item>
       <title>HBase</title>
       <link>https://openinx.github.io/tags/hbase/</link>
-      <pubDate>Tue, 10 Sep 2019 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/hbase/</guid>
       <description></description>
     </item>
     <item>
       <title>Apache</title>
       <link>https://openinx.github.io/tags/apache/</link>
-      <pubDate>Fri, 06 Sep 2019 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/apache/</guid>
       <description></description>
     </item>
     <item>
       <title>JVM</title>
       <link>https://openinx.github.io/tags/jvm/</link>
-      <pubDate>Sun, 23 Jun 2019 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/jvm/</guid>
       <description></description>
     </item>
     <item>
       <title>Distribute</title>
       <link>https://openinx.github.io/tags/distribute/</link>
-      <pubDate>Wed, 28 Jun 2017 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/distribute/</guid>
       <description></description>
     </item>
     <item>
       <title>MVCC</title>
       <link>https://openinx.github.io/tags/mvcc/</link>
-      <pubDate>Sun, 13 Dec 2015 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/mvcc/</guid>
       <description></description>
     </item>
     <item>
       <title>MySQL</title>
       <link>https://openinx.github.io/tags/mysql/</link>
-      <pubDate>Sun, 13 Dec 2015 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/mysql/</guid>
       <description></description>
     </item>
     <item>
       <title>TokuDB</title>
       <link>https://openinx.github.io/tags/tokudb/</link>
-      <pubDate>Wed, 25 Nov 2015 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/tokudb/</guid>
       <description></description>
     </item>
     <item>
       <title>Algorithm</title>
       <link>https://openinx.github.io/tags/algorithm/</link>
-      <pubDate>Tue, 16 Sep 2014 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/algorithm/</guid>
       <description></description>
     </item>
     <item>
       <title>Share</title>
       <link>https://openinx.github.io/tags/share/</link>
-      <pubDate>Sun, 01 Jan 2012 13:27:08 +0800</pubDate>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <guid>https://openinx.github.io/tags/share/</guid>
       <description></description>
     </item>

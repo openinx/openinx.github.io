@@ -9,7 +9,7 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.143.1</generator>
+    <generator>Hugo -- 0.125.7</generator>
     <language>en</language>
     <lastBuildDate>Sun, 01 Jan 2012 13:27:08 +0800</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/share/index.xml" rel="self" type="application/rss+xml" />
@@ -18,20 +18,7 @@
       <link>https://openinx.github.io/posts/2012-01-01-my-share/</link>
       <pubDate>Sun, 01 Jan 2012 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2012-01-01-my-share/</guid>
-      <description>&lt;ul&gt;
-&lt;li&gt;2021.01.08 Flink Forward Asia 2021 Beijing: &lt;a href=&#34;https://openinx.github.io/ppt/The%20Best%20Practice%20of%20Integrating%20Apache%20Flink%20with%20Apache%20Iceberg.pdf&#34;&gt;The Best Practice of Integrating Apache Flink with Apache Iceberg&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2021.04.25 Flink+Iceberg Shanghai Meetup: &lt;a href=&#34;https://openinx.github.io/ppt/2021-04-25-flink-iceberg-shanghai-meetup.pdf&#34;&gt;How Flink and Iceberg Solve the Challenges of Data Lake Ingestion&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2020.12.15 Flink Forward Asia 2020 Beijing: &lt;a href=&#34;https://openinx.github.io/ppt/FlinkForwardAsia2020.pdf&#34;&gt;How to Analyze CDC Data in Iceberg Data Lake Using Flink&lt;/a&gt;, &lt;a href=&#34;https://www.alibabacloud.com/blog/how-to-analyze-cdc-data-in-iceberg-data-lake-using-flink_597838&#34;&gt;Blog&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2019.07.20 HBaseConAsia 2019 Beijing: &lt;a href=&#34;https://openinx.github.io/ppt/hbaseconasia2019.pdf&#34;&gt;Further GC optimization for HBase 2.x: Reading HFileBlock into offheap  directly.&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2018.10.18 小米内部科普HBase读路径 &lt;a href=&#34;https://openinx.github.io/ppt/hbase-read-path.pdf&#34;&gt;PDF&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2018.06.18 HBaseConWest2018 美国湾区-圣何塞(San Jose)分享《HBase Practice In XiaoMi》 &lt;a href=&#34;https://openinx.github.io/ppt/hbase-practice-at-xiaomi-hbasecon2018.pdf&#34;&gt;PPT&lt;/a&gt; &lt;a href=&#34;https://pan.baidu.com/s/10svpfoSU2hJaOqAMTQl2og&#34;&gt;Video&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2017.08.04 &lt;a href=&#34;https://www.eventbrite.com/e/hbasecon-asia-2017-tickets-34935546159&#34;&gt;HBaseConAsia2017&lt;/a&gt; 主题《&lt;a href=&#34;https://openinx.github.io/ppt/hbaseconasia2017_paper_18.pdf&#34;&gt;HBase Practice At XiaoMi&lt;/a&gt;》。&lt;/li&gt;
-&lt;li&gt;2016.03.24 公司内部分享: 《TokuDB索引结构》&lt;a href=&#34;https://openinx.github.io/ppt/tokudb-index.pptx&#34;&gt;PPTX版本&lt;/a&gt;  &lt;a href=&#34;https://openinx.github.io/ppt/tokudb-index.pdf&#34;&gt;PDF版本&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2016.04.13 公司内部分享：《LevelDB存储引擎》 &lt;a href=&#34;https://openinx.github.io/ppt/leveldb-lsm-tree.pptx&#34;&gt;PPTX版本&lt;/a&gt;  &lt;a href=&#34;https://openinx.github.io/ppt/leveldb-lsm-tree.pdf&#34;&gt;PDF版本&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2015年 &lt;a href=&#34;https://openinx.github.io/ppt/vitess.pdf&#34;&gt;Vitess解析&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2011年 湖南师范大学第三届大学生计算机程序设计竞赛命题。 &lt;a href=&#34;https://github.com/openinx/algorithm-solution/blob/master/hunnu_3th_programming_contest/ProblemAndSolution/summary/ProblemSet.pdf&#34;&gt;试题PDF&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/raw/master/hunnu_3th_programming_contest/ProblemAndSolution/summary/Tutorial.pptx&#34;&gt;解答PPT&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/tree/master/hunnu_3th_programming_contest/ProblemAndSolution&#34;&gt;参考程序&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;2011年 湖南师范大学2010年12月份月赛命题。&lt;a href=&#34;https://github.com/openinx/algorithm-solution/blob/master/hunnu_201012_acm_monthly/solution/ProblemSet.pdf&#34;&gt;试题PDF&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/raw/master/hunnu_201012_acm_monthly/solution/solution.pdf&#34;&gt;解答PPT&lt;/a&gt; &lt;a href=&#34;https://github.com/openinx/algorithm-solution/tree/master/hunnu_201012_acm_monthly/solution&#34;&gt;参考程序&lt;/a&gt;。&lt;/li&gt;
-&lt;/ul&gt;</description>
+      <description>2021.01.08 Flink Forward Asia 2021 Beijing: The Best Practice of Integrating Apache Flink with Apache Iceberg 2021.04.25 Flink+Iceberg Shanghai Meetup: How Flink and Iceberg Solve the Challenges of Data Lake Ingestion 2020.12.15 Flink Forward Asia 2020 Beijing: How to Analyze CDC Data in Iceberg Data Lake Using Flink, Blog 2019.07.20 HBaseConAsia 2019 Beijing: Further GC optimization for HBase 2.x: Reading HFileBlock into offheap directly. 2018.10.18 小米内部科普HBase读路径 PDF 2018.06.18 HBaseConWest2018 美国湾区-圣何塞(San Jose)分享《HBase Practice In XiaoMi》 PPT Video 2017.</description>
     </item>
   </channel>
 </rss>

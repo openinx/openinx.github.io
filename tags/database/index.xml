@@ -9,7 +9,7 @@
       <url>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</url>
       <link>https://openinx.github.io/%3Clink%20or%20path%20of%20image%20for%20opengraph,%20twitter-cards%3E</link>
     </image>
-    <generator>Hugo -- 0.143.1</generator>
+    <generator>Hugo -- 0.125.7</generator>
     <language>en</language>
     <lastBuildDate>Fri, 01 Jul 2022 12:00:24 +0800</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/database/index.xml" rel="self" type="application/rss+xml" />
@@ -18,337 +18,185 @@
       <link>https://openinx.github.io/posts/2022-07-01-realtime-update-in-columar-table/</link>
       <pubDate>Fri, 01 Jul 2022 12:00:24 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2022-07-01-realtime-update-in-columar-table/</guid>
-      <description>&lt;p&gt;最近读了一下 Microsoft 在 2015 年 VLDB 上发表的论文 《Real-Time Analytical Processing with SQL Server》[1]。SQLServer算是业内较早实现并落地 HTAP 行列更新方案的产品，我其实觉得  行存（Row-Wise Index） 在OLTP场景下的各种设计以及取舍，大家都已经讨论的非常清楚了。对于高效率的 &lt;strong&gt;毫秒级列存更新&lt;/strong&gt; 方案，业界有一些方案设计和实现，典型的如Kudu[2]、Positional Delta Tree[3] 等，但远不如行存讨论的多。我仔细的 Review 了一下 SQLServer 的技术方案，觉得他们的设计还是颇具参考意义。本文分享一下我对这篇文章的一些看法。&lt;/p&gt;
-&lt;p&gt;论文主要讲了 4 个方面的话题：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;内存中实现列存表；&lt;/li&gt;
-&lt;li&gt;对于行存表，怎么实现一个列存索引结构，从而实现分析型 SQL 的极大提速。这部分的重点就是怎么实现列存二级索引的实时更新；&lt;/li&gt;
-&lt;li&gt;对于列存表怎么实现一个 B-Tree 的二级索引，使得这个列存表可以用来做点查和小范围扫描；&lt;/li&gt;
-&lt;li&gt;计算层在列存表的扫描性能上做了哪些优化。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;第1部分纯内存的列存表相对比较简单，第4部分的列存表扫描在业界的很多论文中都可以找到类似的方案。第2部分和第3部分相对比较独特，可以说是整篇文章的精华，也是我比较感兴趣的部分。&lt;/p&gt;
-&lt;p&gt;其实第2部分，可以认为是在一个已经存在的OLTP表上，怎么来创建一个OLAP的列存索引，使得这个表可以跑 &lt;strong&gt;“TP为主，AP为辅”&lt;/strong&gt; 的两种QUERY；而第3部分正好完全相反，相当于是在一个纯粹的OLAP列存表之上，创建一个适合做 &lt;strong&gt;点查&lt;/strong&gt; 和 &lt;strong&gt;小范围&lt;/strong&gt; 查询的行存索引，使得这个表可以完成 &lt;strong&gt;“AP为主，TP为辅”&lt;/strong&gt; 的混合QUERY。&lt;/p&gt;
-&lt;h3 id=&#34;tp为主ap为辅-的索引方案&#34;&gt;&amp;ldquo;TP为主，AP为辅“ 的索引方案&lt;/h3&gt;
-&lt;p&gt;&lt;img alt=&#34;SQL Server Columnar Secondary Index&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/sql-server-columnar-secondary-index.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;SQL Server的这种 CSI （Columnar Store Index）更新方案，说实话其实在 &lt;strong&gt;写入延迟&lt;/strong&gt; 和 &lt;strong&gt;读取延迟&lt;/strong&gt; 上处理的还算比较恰当。对于列存索引来说，如果是 INSERT 的话，那么直接 Append 到 Delta Store 里面就行，没啥其他的额外耗时操作；如果是 DELETE 的话，先看一下 DELETE 的 key 是否在 Delta Store 里面，如果在就直接删除即可；如果不在，就插入一条 Delete Marker 到这个由 B-Tree 索引实现的 Delete Buffer。无论是 INSERT 还是 DELETE 操作，都没有特别耗时的地方。可能往 B-Tree 索引实现的 Delete Buffer 里面写 Delete Marker 会有点儿耗时，但这个 Delete Buffer 一般都是最近更新比较热的数据。首先体量不会特别大，其次，大部分的都是热数据，都会被 Cache 到内存。然后，后台有一个任务， 会默默地把 Delete Buffer 里面的 Delete 操作都转换成 Delete Bitmap。&lt;/p&gt;</description>
+      <description>最近读了一下 Microsoft 在 2015 年 VLDB 上发表的论文 《Real-Time Analytical Processing with SQL Server》[1]。SQLServer算是业内较早实现并落地 HTAP 行列更新方案的产品，我其实觉得 行存（Row-Wise Index） 在OLTP场景下的各种设计以及取舍，大家都已经讨论的非常清楚了。对于高效率的 毫秒级列存更新 方案，业界有一些方案设计和实现，典型的如Kudu[2]、Positional Delta Tree[3] 等，但远不如行存讨论的多。我仔细的 Review 了一下 SQLServer 的技术方案，觉得他们的设计还是颇具参考意义。本文分享一下我对这篇文章的一些看法。
+论文主要讲了 4 个方面的话题：
+内存中实现列存表； 对于行存表，怎么实现一个列存索引结构，从而实现分析型 SQL 的极大提速。这部分的重点就是怎么实现列存二级索引的实时更新； 对于列存表怎么实现一个 B-Tree 的二级索引，使得这个列存表可以用来做点查和小范围扫描； 计算层在列存表的扫描性能上做了哪些优化。 第1部分纯内存的列存表相对比较简单，第4部分的列存表扫描在业界的很多论文中都可以找到类似的方案。第2部分和第3部分相对比较独特，可以说是整篇文章的精华，也是我比较感兴趣的部分。
+其实第2部分，可以认为是在一个已经存在的OLTP表上，怎么来创建一个OLAP的列存索引，使得这个表可以跑 “TP为主，AP为辅” 的两种QUERY；而第3部分正好完全相反，相当于是在一个纯粹的OLAP列存表之上，创建一个适合做 点查 和 小范围 查询的行存索引，使得这个表可以完成 “AP为主，TP为辅” 的混合QUERY。
+&amp;ldquo;TP为主，AP为辅“ 的索引方案 SQL Server的这种 CSI （Columnar Store Index）更新方案，说实话其实在 写入延迟 和 读取延迟 上处理的还算比较恰当。对于列存索引来说，如果是 INSERT 的话，那么直接 Append 到 Delta Store 里面就行，没啥其他的额外耗时操作；如果是 DELETE 的话，先看一下 DELETE 的 key 是否在 Delta Store 里面，如果在就直接删除即可；如果不在，就插入一条 Delete Marker 到这个由 B-Tree 索引实现的 Delete Buffer。无论是 INSERT 还是 DELETE 操作，都没有特别耗时的地方。可能往 B-Tree 索引实现的 Delete Buffer 里面写 Delete Marker 会有点儿耗时，但这个 Delete Buffer 一般都是最近更新比较热的数据。首先体量不会特别大，其次，大部分的都是热数据，都会被 Cache 到内存。然后，后台有一个任务， 会默默地把 Delete Buffer 里面的 Delete 操作都转换成 Delete Bitmap。</description>
     </item>
     <item>
       <title>Pingcap Hackthon2019</title>
       <link>https://openinx.github.io/posts/2019-10-26-pingcap-hackthon2019/</link>
       <pubDate>Sat, 26 Oct 2019 13:16:43 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2019-10-26-pingcap-hackthon2019/</guid>
-      <description>&lt;p&gt;最近参加了TiDB的&lt;a href=&#34;https://pingcap.com/community-cn/hackathon2019/&#34;&gt;Hackthon2019&lt;/a&gt;比赛，一直都想写一篇总结，现在总算有点时间来写一下。&lt;/p&gt;
-&lt;p&gt;这是一个围绕 TiDB 分布式数据库展开的一个编程比赛，在 48 小时内完成一个可以展示的 demo，并在 6 分钟内向评委说明项目思路及展示demo。理论上，要求这个demo从实用性、易用性、性能三个方面来优化TiDB（占评分40%），“当然作品的完成度也是一个很重要的考核方向（占30%)，其他就是创新性（占20%）和展示度了（占10%）。&lt;/p&gt;
-&lt;p&gt;我们队共有三个同学：队长是来自 PingCAP 美国 office 的吴毅同学，他之前在 facebook 负责 RocksDB 的研发，目前在PingCAP 主要负责 RocksDB 的研发和性能优化，另外一个北京 office 的张博康同学，负责TiKV的研发。由于我们队三个人都是做存储底层的研发，所以就想尝试在今年的 Hackthon 上做一些偏底层的工作。在比赛前，我们大致确认可能会尝试的几个小方向：&lt;/p&gt;
-&lt;p&gt;第一个是做一套 TiKV 的分布式 trace，用来跟进一个 TiKV 请求整个生命周期的耗时情况，便于诊断性能。由于这是一个非常普遍的方向，我们预估可能会有不少团队跟我们撞车，另外印象中现在 TiKV 已经实现了部分工作，所以就没有选择这个方向。&lt;/p&gt;
-&lt;p&gt;第二个是把一个图查询引擎套在 TiKV 之上，实现一个图数据库。我们初步想好可以用这个图数据库展示社交网络中的三度人脉。在不需要我们开发前端的前提下，可以借助开源的图查询前端来展示 demo，至少演示上不会吃亏。这个其实是一个不错的候选，但不确定工作量有多大，最后也没有选择这个方向。&lt;/p&gt;
-&lt;p&gt;第三个是用最新 linux 引入的高性能纯异步实现的 IO 接口 liburing 来重写部分 rocksdb 的实现，期望能给 TiKV 带来更好的性能提升。这个课题看起来跟我们三个成员的背景比较匹配，于是最终我们选择了这个课题。&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;TiDB Hackton2019 iouring&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/tidb-hackthon2019-iouring.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;我们队吴毅和博康选择在北京 office 比赛，而我离上海比较近，所以就去了上海。为此还申请了异地组队权限（感谢下PingCAP 开放的组委会），我们应该是唯一的三人两地的队伍了。&lt;/p&gt;
-&lt;p&gt;我们大致阅读了 liburing 的技术文档，大致确定可以尝试用这套异步 IO 接口重写 RocksDB 的写 WAL 流程和Compaction 流程。另外也调研到 facebook 之前已经尝试过用 io_uring 重写 RocksDB 的 MultiRead 实现，发现随机读的 IOPS 能翻三倍，接口延迟也下降不少，所以我们想用 TiKV 的一个场景来说明可以从中获得性能收益。&lt;/p&gt;</description>
+      <description>最近参加了TiDB的Hackthon2019比赛，一直都想写一篇总结，现在总算有点时间来写一下。
+这是一个围绕 TiDB 分布式数据库展开的一个编程比赛，在 48 小时内完成一个可以展示的 demo，并在 6 分钟内向评委说明项目思路及展示demo。理论上，要求这个demo从实用性、易用性、性能三个方面来优化TiDB（占评分40%），“当然作品的完成度也是一个很重要的考核方向（占30%)，其他就是创新性（占20%）和展示度了（占10%）。
+我们队共有三个同学：队长是来自 PingCAP 美国 office 的吴毅同学，他之前在 facebook 负责 RocksDB 的研发，目前在PingCAP 主要负责 RocksDB 的研发和性能优化，另外一个北京 office 的张博康同学，负责TiKV的研发。由于我们队三个人都是做存储底层的研发，所以就想尝试在今年的 Hackthon 上做一些偏底层的工作。在比赛前，我们大致确认可能会尝试的几个小方向：
+第一个是做一套 TiKV 的分布式 trace，用来跟进一个 TiKV 请求整个生命周期的耗时情况，便于诊断性能。由于这是一个非常普遍的方向，我们预估可能会有不少团队跟我们撞车，另外印象中现在 TiKV 已经实现了部分工作，所以就没有选择这个方向。
+第二个是把一个图查询引擎套在 TiKV 之上，实现一个图数据库。我们初步想好可以用这个图数据库展示社交网络中的三度人脉。在不需要我们开发前端的前提下，可以借助开源的图查询前端来展示 demo，至少演示上不会吃亏。这个其实是一个不错的候选，但不确定工作量有多大，最后也没有选择这个方向。
+第三个是用最新 linux 引入的高性能纯异步实现的 IO 接口 liburing 来重写部分 rocksdb 的实现，期望能给 TiKV 带来更好的性能提升。这个课题看起来跟我们三个成员的背景比较匹配，于是最终我们选择了这个课题。
+我们队吴毅和博康选择在北京 office 比赛，而我离上海比较近，所以就去了上海。为此还申请了异地组队权限（感谢下PingCAP 开放的组委会），我们应该是唯一的三人两地的队伍了。
+我们大致阅读了 liburing 的技术文档，大致确定可以尝试用这套异步 IO 接口重写 RocksDB 的写 WAL 流程和Compaction 流程。另外也调研到 facebook 之前已经尝试过用 io_uring 重写 RocksDB 的 MultiRead 实现，发现随机读的 IOPS 能翻三倍，接口延迟也下降不少，所以我们想用 TiKV 的一个场景来说明可以从中获得性能收益。</description>
     </item>
     <item>
       <title>一场HBase2.x的写入性能优化之旅</title>
       <link>https://openinx.github.io/posts/2019-09-10-tuning-the-hbase-2-write-performance/</link>
       <pubDate>Tue, 10 Sep 2019 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2019-09-10-tuning-the-hbase-2-write-performance/</guid>
-      <description>&lt;p&gt;HBase2.x的写入性能到底怎么样？来，不服跑个分！&lt;/p&gt;
-&lt;p&gt;首先，简单介绍一下我们的测试环境：集群由5个节点组成，每个节点有12块800GB的SSD盘、24核CPU、128GB内存；集群采用HBase和HDFS混布方式，也就是同一个节点既部署RegionServer进程，又部署DataNode进程，这样其实可以保证更好的写入性能，毕竟至少写一副本在本地。关于软件版本，我们使用的HBase2.1.2版本以及HDFS 2.6.0版本，Java使用OpenJDK1.8.0_202。&lt;/p&gt;
-&lt;p&gt;对每一个RegionServer进程，我们正常的线上配置是50GB堆内内存和50GB堆外内存（RS合计占用100GB内存），其中堆内内存主要用于Memstore（~36GB），堆外内存主要用于BucketCache（~36GB）。这里，我们为了保证尽量跟线上配置一样，虽然现在是100%写入的测试场景，我们还是保留了50GB的堆外内存给BucketCache。&lt;/p&gt;
-&lt;p&gt;在搭建好集群后，我们提前用YCSB压入了100亿行数据，每行数据占用100字节。注意，压入数据时，采用BufferMutator的方式批量写入，单机吞吐可以达到令人恐怖的20万QPS，所以这个过程是非常快的。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;正常写入性能结果&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;接着我们开始测试正常的单行Put（设置autoflush=true）延迟了。我们在100亿行数据集规模的基础上，用YCSB持续写入数据到HBase集群，将YCSB的性能数据制作成如下监控图：&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-before.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;首先，我们可以看到5个节点的总QPS在10w/s左右，单机QPS在2w+/s左右，avgLatency&amp;lt;4ms，P99-Latency&amp;lt;20ms。从基本面上看，这个数据还是很不错的。
-但是，图中我们也能发现一些非常明显的问题：&lt;br&gt;
-1.QPS曲线呈现出明显的高峰和低谷，而且高峰和低谷是周期性出现的，大概15min出现一次高峰，对应的平均延迟(avg-Latency)也出现相应的周期性。这种不稳定的吞吐和延迟表现，对业务是非常不友好的，因为在低谷时期业务的QPS将受到极大的限制。&lt;br&gt;
-2.有时会出现大量P999为150ms的请求，P999曲线毛刺非常突出，而且毛刺点比平均的P999延迟要高100ms，这是一个非常令人困惑的数据。&lt;br&gt;
-3.P9999延迟出现部分超过1s的毛刺点。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;优化毛刺&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;我们来分析上述几个问题的原因。首先，我们找了几个QPS低谷的时间点，去RegionServer的日志中看了下，确认低谷时间点基本上是 &lt;strong&gt;Memstore做Flush的时间点&lt;/strong&gt; 。另外，确认P999毛刺时间点也是Flush的时间点。由此，推断出可能的几个原因有：&lt;br&gt;
-1.在测试集群中，每个节点的Region数以及各Region数据写入量都非常均衡。这样可能造成的一个问题就是，某一个时间点所有的Region几乎同时进入Flush状态，造成短期内磁盘有巨大的写入压力，最终吞吐下降，延迟上升。&lt;br&gt;
-2.MemStore Flush的过程，分成两步：第一步加写锁，将Memstore切换成snapshot状态，释放写锁；第二步，将snapshot数据异步的刷新成HFile文件。其中第一步持有写锁的过程中，是会阻塞当前写入的，第二步已经释放了写锁，所以刷新相当于是异步的，不会阻塞当前的写入请求。&lt;strong&gt;如果在第一步持有写锁过程中，有任何耗时操作，都会造成延迟飙升&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;第一个问题在真实的线上集群其实不太可能发生，因为线上不可能做到绝对均衡，Flush必然是错峰出现。另外，即使绝对均衡，也可以采用限流的方式来控制Flush的写入速率，进而控制延迟。这个问题我们暂时可以放一放。&lt;/p&gt;
-&lt;p&gt;第二个问题，我们尝试加了点日志，打印出每次Flush时RegionServer持有写锁的时长。发现一些如下日志：
-“&amp;ndash;&amp;gt; Memstore snapshotting cost: 146ms”&lt;/p&gt;
-&lt;p&gt;这说明在Memstore snapshot过程中，确实有一些长耗时的操作。在进一步核对代码之后，我们发现一个如下存在问题的栈：&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-size-bug.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;换句话说，在Memstore Snapshot中调用了一次ConcurrentSkipListMap#size()接口，而这个接口的时间复杂度是O(N)的。也就是说，如果有256MB的Memstore，那么这个size()接口会逐个扫描Memstore中的KV，最终统计得出Map中元素个数。ConcurrentSkipListMap为什么要这么实现呢？因为ConcurrentSkipListMap为了保证更好的写入并发性，不会在更新删除Map时维护一个线程安全的size变量，所以只能实时的统计Map元素个数。&lt;/p&gt;
-&lt;p&gt;这是一个潜藏在HBase代码仓库中很长时间的一个bug，从0.98一直到现在的2.0，甚至3.0，都没有用户发现这个bug。更多详情可以参考&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21738&#34;&gt;HBASE-21738&lt;/a&gt;。&lt;/p&gt;
-&lt;p&gt;其实，找到了问题之后，修改起来也就很简单，只需要把这个耗时的size()操作去掉，或者用其他的方式来替换即可。 我们已经在各分支最新版本中修复了这个bug，建议对性能有更高追求的用户升级。当然，对此我们也做了进一步的性能测试：&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-after.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;从图中看出，至少我们把P999的延迟控制在了100ms以内，另外，我们也可以很容易发现P9999的毛刺也从之前的1000ms下降到200ms~500ms左右。这说明，上述fix对解决毛刺问题还是很有效果的。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;采用In-Memory Compaction进一步优化毛刺&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;但事实上，就目前的情况来说，我们仍然觉得P999~100ms不够好，其实大部分的P999是小于40ms的，但由于毛刺的问题，还是把P999拉到了100ms。进一步分析日志之后，我们发现此时G1 GC的STW是影响P999最大的因素，因为毛刺点都是GC STW的时间点，而且STW的耗时正好是100ms左右。&lt;/p&gt;
-&lt;p&gt;于是，我们考虑采用社区HBase 2.0引入的In-memory compaction功能来优化集群的写性能。这个功能的本质优势在于，把256MB的Memstore划分成多个2MB大小的小有序集合，这些集合中有一个是Mutable的集合，其他的都是Immutable的集合。每次写入都先写Mutable的集合，等Mutable集合占用字节超过2MB之后，就把它切换成Immutable的集合，再新开一个Mutable集合供写入。Immutable的集合由于其不可变性，可以直接用有序数组替换掉ConcurrentSkipListMap，节省大量heap消耗，进一步控制GC延迟。甚至更进一步，我们可以把MSLAB的内存池分配到offheap内。从此，整个Memstore几乎没有堆内的内存占用。理论上，这个feature的性能表现将非常强劲，我们做个测试来验证一下。&lt;/p&gt;
-&lt;p&gt;测试环境跟之前一样，不同的是我们会将Memstore配置为CompactingMemstore。注意，目前我们的MSLAB仍然是放在heap上的（若想把MSLAB为offheap，需要设置hbase.regionserver.offheap.global.memstore.size=36864，相当于把36GB的堆外内存给MSLAB）。&lt;/p&gt;
-&lt;p&gt;RegionServer的核心配置如下：&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-ini&#34; data-lang=&#34;ini&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.hregion.memstore.block.multiplier&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;5&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.hregion.memstore.flush.size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;268435456&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.regionserver.global.memstore.size&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;0.4&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.regionserver.global.memstore.size.lower.limit&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;0.625&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;na&#34;&gt;hbase.hregion.compacting.memstore.type&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;s&#34;&gt;BASIC&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;最终，我们得到的In-memory compaction测试结果如下：&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase2-write-performance-IMC.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;从图中可以非常明显的看出，P999延迟控制在令人惊讶的50ms以内，同时P9999控制在100ms左右，远低于之前的200ms~500ms。与此同时，吞吐跟平均延迟几乎没有任何损耗。如果使用堆外的CompactingMemstore，理论上毛刺会控制的更加严格，但有可能稍微拉升平均延迟。这里我没有再提供进一步的详细测试结果，感兴趣的朋友可以尝试一下。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;总结&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;社区HBase2.1.2版本的写入延迟和吞吐表现都非常出色，但是某些场景下容易出现较高的毛刺。经过HBASE-21738优化之后，我们已经能很好地把P999延迟控制在100ms左右。这中间大部分时间点的P999&amp;lt;40ms，少数时间点因为GC STW拉高了P999的表现。接着，我们采用堆内的In-Memory Compaction优化之后，P999已经能控制在满意的50ms以内，甚至P9999可以控制在100ms以内。从这些点上来说，HBase2.1.3和HBase2.2.0版本已经是性能非常强悍的版本。&lt;/p&gt;</description>
+      <description>HBase2.x的写入性能到底怎么样？来，不服跑个分！
+首先，简单介绍一下我们的测试环境：集群由5个节点组成，每个节点有12块800GB的SSD盘、24核CPU、128GB内存；集群采用HBase和HDFS混布方式，也就是同一个节点既部署RegionServer进程，又部署DataNode进程，这样其实可以保证更好的写入性能，毕竟至少写一副本在本地。关于软件版本，我们使用的HBase2.1.2版本以及HDFS 2.6.0版本，Java使用OpenJDK1.8.0_202。
+对每一个RegionServer进程，我们正常的线上配置是50GB堆内内存和50GB堆外内存（RS合计占用100GB内存），其中堆内内存主要用于Memstore（~36GB），堆外内存主要用于BucketCache（~36GB）。这里，我们为了保证尽量跟线上配置一样，虽然现在是100%写入的测试场景，我们还是保留了50GB的堆外内存给BucketCache。
+在搭建好集群后，我们提前用YCSB压入了100亿行数据，每行数据占用100字节。注意，压入数据时，采用BufferMutator的方式批量写入，单机吞吐可以达到令人恐怖的20万QPS，所以这个过程是非常快的。
+正常写入性能结果
+接着我们开始测试正常的单行Put（设置autoflush=true）延迟了。我们在100亿行数据集规模的基础上，用YCSB持续写入数据到HBase集群，将YCSB的性能数据制作成如下监控图：
+首先，我们可以看到5个节点的总QPS在10w/s左右，单机QPS在2w+/s左右，avgLatency&amp;lt;4ms，P99-Latency&amp;lt;20ms。从基本面上看，这个数据还是很不错的。 但是，图中我们也能发现一些非常明显的问题：
+1.QPS曲线呈现出明显的高峰和低谷，而且高峰和低谷是周期性出现的，大概15min出现一次高峰，对应的平均延迟(avg-Latency)也出现相应的周期性。这种不稳定的吞吐和延迟表现，对业务是非常不友好的，因为在低谷时期业务的QPS将受到极大的限制。
+2.有时会出现大量P999为150ms的请求，P999曲线毛刺非常突出，而且毛刺点比平均的P999延迟要高100ms，这是一个非常令人困惑的数据。
+3.P9999延迟出现部分超过1s的毛刺点。
+优化毛刺
+我们来分析上述几个问题的原因。首先，我们找了几个QPS低谷的时间点，去RegionServer的日志中看了下，确认低谷时间点基本上是 Memstore做Flush的时间点 。另外，确认P999毛刺时间点也是Flush的时间点。由此，推断出可能的几个原因有：
+1.在测试集群中，每个节点的Region数以及各Region数据写入量都非常均衡。这样可能造成的一个问题就是，某一个时间点所有的Region几乎同时进入Flush状态，造成短期内磁盘有巨大的写入压力，最终吞吐下降，延迟上升。
+2.MemStore Flush的过程，分成两步：第一步加写锁，将Memstore切换成snapshot状态，释放写锁；第二步，将snapshot数据异步的刷新成HFile文件。其中第一步持有写锁的过程中，是会阻塞当前写入的，第二步已经释放了写锁，所以刷新相当于是异步的，不会阻塞当前的写入请求。如果在第一步持有写锁过程中，有任何耗时操作，都会造成延迟飙升。
+第一个问题在真实的线上集群其实不太可能发生，因为线上不可能做到绝对均衡，Flush必然是错峰出现。另外，即使绝对均衡，也可以采用限流的方式来控制Flush的写入速率，进而控制延迟。这个问题我们暂时可以放一放。
+第二个问题，我们尝试加了点日志，打印出每次Flush时RegionServer持有写锁的时长。发现一些如下日志： “&amp;ndash;&amp;gt; Memstore snapshotting cost: 146ms”
+这说明在Memstore snapshot过程中，确实有一些长耗时的操作。在进一步核对代码之后，我们发现一个如下存在问题的栈：
+换句话说，在Memstore Snapshot中调用了一次ConcurrentSkipListMap#size()接口，而这个接口的时间复杂度是O(N)的。也就是说，如果有256MB的Memstore，那么这个size()接口会逐个扫描Memstore中的KV，最终统计得出Map中元素个数。ConcurrentSkipListMap为什么要这么实现呢？因为ConcurrentSkipListMap为了保证更好的写入并发性，不会在更新删除Map时维护一个线程安全的size变量，所以只能实时的统计Map元素个数。
+这是一个潜藏在HBase代码仓库中很长时间的一个bug，从0.98一直到现在的2.0，甚至3.0，都没有用户发现这个bug。更多详情可以参考HBASE-21738。
+其实，找到了问题之后，修改起来也就很简单，只需要把这个耗时的size()操作去掉，或者用其他的方式来替换即可。 我们已经在各分支最新版本中修复了这个bug，建议对性能有更高追求的用户升级。当然，对此我们也做了进一步的性能测试：
+从图中看出，至少我们把P999的延迟控制在了100ms以内，另外，我们也可以很容易发现P9999的毛刺也从之前的1000ms下降到200ms~500ms左右。这说明，上述fix对解决毛刺问题还是很有效果的。
+采用In-Memory Compaction进一步优化毛刺
+但事实上，就目前的情况来说，我们仍然觉得P999~100ms不够好，其实大部分的P999是小于40ms的，但由于毛刺的问题，还是把P999拉到了100ms。进一步分析日志之后，我们发现此时G1 GC的STW是影响P999最大的因素，因为毛刺点都是GC STW的时间点，而且STW的耗时正好是100ms左右。
+于是，我们考虑采用社区HBase 2.0引入的In-memory compaction功能来优化集群的写性能。这个功能的本质优势在于，把256MB的Memstore划分成多个2MB大小的小有序集合，这些集合中有一个是Mutable的集合，其他的都是Immutable的集合。每次写入都先写Mutable的集合，等Mutable集合占用字节超过2MB之后，就把它切换成Immutable的集合，再新开一个Mutable集合供写入。Immutable的集合由于其不可变性，可以直接用有序数组替换掉ConcurrentSkipListMap，节省大量heap消耗，进一步控制GC延迟。甚至更进一步，我们可以把MSLAB的内存池分配到offheap内。从此，整个Memstore几乎没有堆内的内存占用。理论上，这个feature的性能表现将非常强劲，我们做个测试来验证一下。
+测试环境跟之前一样，不同的是我们会将Memstore配置为CompactingMemstore。注意，目前我们的MSLAB仍然是放在heap上的（若想把MSLAB为offheap，需要设置hbase.regionserver.offheap.global.memstore.size=36864，相当于把36GB的堆外内存给MSLAB）。
+RegionServer的核心配置如下：
+hbase.hregion.memstore.block.multiplier=5 hbase.hregion.memstore.flush.size=268435456 hbase.regionserver.global.memstore.size=0.4 hbase.regionserver.global.memstore.size.lower.limit=0.625 hbase.hregion.compacting.memstore.type=BASIC 最终，我们得到的In-memory compaction测试结果如下：
+从图中可以非常明显的看出，P999延迟控制在令人惊讶的50ms以内，同时P9999控制在100ms左右，远低于之前的200ms~500ms。与此同时，吞吐跟平均延迟几乎没有任何损耗。如果使用堆外的CompactingMemstore，理论上毛刺会控制的更加严格，但有可能稍微拉升平均延迟。这里我没有再提供进一步的详细测试结果，感兴趣的朋友可以尝试一下。
+总结
+社区HBase2.1.2版本的写入延迟和吞吐表现都非常出色，但是某些场景下容易出现较高的毛刺。经过HBASE-21738优化之后，我们已经能很好地把P999延迟控制在100ms左右。这中间大部分时间点的P999&amp;lt;40ms，少数时间点因为GC STW拉高了P999的表现。接着，我们采用堆内的In-Memory Compaction优化之后，P999已经能控制在满意的50ms以内，甚至P9999可以控制在100ms以内。从这些点上来说，HBase2.1.3和HBase2.2.0版本已经是性能非常强悍的版本。</description>
     </item>
     <item>
       <title>Nebula北京Meetup总结</title>
       <link>https://openinx.github.io/posts/2019-06-29-nebula-meetup/</link>
       <pubDate>Sat, 29 Jun 2019 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2019-06-29-nebula-meetup/</guid>
-      <description>&lt;p&gt;Nebula在京东北辰组织了他们的第二次Meetup，公司CEO叶小萌是蚂蚁金服图数据库Geobase的负责人。两位技术总监：陈恒和侯凤林，陈恒之前是HBase committer，现主要负责Nebula的存储层设计，类似TiKV。侯凤林(dutor)应该是负责query engine，类似TiDB。&lt;/p&gt;
-&lt;p&gt;架构是典型的存储计算分离，计算层设计是类SQL，添加go语法来实现边跳转，管道来简化嵌套子查询。storage层是kv结构，按照key做静态hash分区(暂不支持动态分区)，hash值是根据顶点计算(解释图场景几乎没有按照点做order by的需求)，也就是同一个顶点的所有点和出入边都存同一个分区，出入边遍历友好。但是，对求A到B之间的top 10权重边这种需求，查询不友好，需要单独加索引。&lt;/p&gt;
-&lt;p&gt;每个分区三副本组成一个raft group来实现复制，rocksdb引擎。单节点可能有很多分区，而每个分区都需要一个线程来负责推raft log，他们实现了一个共享线程池来负责推raft log，从而控制线程数。每个group内可设leaner角色，就是异步复制到其他系统，用于离线场景等。meta server跟data server设计类似，唯一区别是meta server负责meta相关的kv请求，data server负责图算子的kv请求。&lt;/p&gt;
-&lt;p&gt;目前处于alpha版本，下半年会发布可用于生产环境的release版本。我理解金融反欺诈反洗钱领域对图数据库的需求很强烈，理由如下: 首先蚂蚁金服是国内最开始自研图数据库的厂商，后团队出来创业后，最先找到的合作对象是京东数科，京东有强烈需求，星云有技术和经验，二者是极佳的互补。未来的核心服务对象，我猜仍然会是银行，金融企业，保险行业，证券这些不缺钱的大金主。除BAT外的第二梯队和第三梯队的互联网公司会陆续参与到他们的社区来，开发，测试，修bug，提高口碑和知名度，甚至成为行业图数据库领域的标准产品(例如查询语言一旦成为国内标准，用户上了船，就很难下船了)。&lt;/p&gt;
-&lt;p&gt;暂时不支持事务，他们未来打算用实用的pecolator分布式事务协议，有缺点(最大问题在于时间戳服务限制了集群的更大拓展性)但简单实用，因为基于rocksdb很容易通过单行事务实现多行事务，同时实现了去中心化的锁冲突检测。&lt;/p&gt;
-&lt;p&gt;开源的方式很棒，选择的方向是风口，团队技术靠谱，又有风投加持，未来可期。&lt;/p&gt;
-&lt;p&gt;最后，个人一点理解: infra既是个技术活，又是个产品活。对用户来说，产品经理的作用仍更胜于工程师，希望他们能打磨出一款精致的infra产品。&lt;/p&gt;</description>
+      <description>Nebula在京东北辰组织了他们的第二次Meetup，公司CEO叶小萌是蚂蚁金服图数据库Geobase的负责人。两位技术总监：陈恒和侯凤林，陈恒之前是HBase committer，现主要负责Nebula的存储层设计，类似TiKV。侯凤林(dutor)应该是负责query engine，类似TiDB。
+架构是典型的存储计算分离，计算层设计是类SQL，添加go语法来实现边跳转，管道来简化嵌套子查询。storage层是kv结构，按照key做静态hash分区(暂不支持动态分区)，hash值是根据顶点计算(解释图场景几乎没有按照点做order by的需求)，也就是同一个顶点的所有点和出入边都存同一个分区，出入边遍历友好。但是，对求A到B之间的top 10权重边这种需求，查询不友好，需要单独加索引。
+每个分区三副本组成一个raft group来实现复制，rocksdb引擎。单节点可能有很多分区，而每个分区都需要一个线程来负责推raft log，他们实现了一个共享线程池来负责推raft log，从而控制线程数。每个group内可设leaner角色，就是异步复制到其他系统，用于离线场景等。meta server跟data server设计类似，唯一区别是meta server负责meta相关的kv请求，data server负责图算子的kv请求。
+目前处于alpha版本，下半年会发布可用于生产环境的release版本。我理解金融反欺诈反洗钱领域对图数据库的需求很强烈，理由如下: 首先蚂蚁金服是国内最开始自研图数据库的厂商，后团队出来创业后，最先找到的合作对象是京东数科，京东有强烈需求，星云有技术和经验，二者是极佳的互补。未来的核心服务对象，我猜仍然会是银行，金融企业，保险行业，证券这些不缺钱的大金主。除BAT外的第二梯队和第三梯队的互联网公司会陆续参与到他们的社区来，开发，测试，修bug，提高口碑和知名度，甚至成为行业图数据库领域的标准产品(例如查询语言一旦成为国内标准，用户上了船，就很难下船了)。
+暂时不支持事务，他们未来打算用实用的pecolator分布式事务协议，有缺点(最大问题在于时间戳服务限制了集群的更大拓展性)但简单实用，因为基于rocksdb很容易通过单行事务实现多行事务，同时实现了去中心化的锁冲突检测。
+开源的方式很棒，选择的方向是风口，团队技术靠谱，又有风投加持，未来可期。
+最后，个人一点理解: infra既是个技术活，又是个产品活。对用户来说，产品经理的作用仍更胜于工程师，希望他们能打磨出一款精致的infra产品。</description>
     </item>
     <item>
       <title>Further GC optimization for HBase3.x: Reading HFileBlock into offheap directly</title>
       <link>https://openinx.github.io/posts/2019-06-23-offheap-block-reading/</link>
       <pubDate>Sun, 23 Jun 2019 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2019-06-23-offheap-block-reading/</guid>
-      <description>&lt;p&gt;In &lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21879&#34;&gt;HBASE-21879&lt;/a&gt;, we redesigned the offheap read path: read the HFileBlock from HDFS to pooled offheap
-ByteBuffers directly, while before &lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21879&#34;&gt;HBASE-21879&lt;/a&gt; we just read the HFileBlock to heap which would still lead
-to high GC pressure.&lt;/p&gt;
-&lt;p&gt;After few months of development and testing, all subtasks have been resovled now except the &lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21946&#34;&gt;HBASE-21946&lt;/a&gt;
-(It depends on &lt;a href=&#34;https://issues.apache.org/jira/browse/HDFS-14483&#34;&gt;HDFS-14483&lt;/a&gt; and our HDFS teams are working on this, we expect the HDFS-14483 to be included
-in hadoop 2.9.3 and after that the HBASE-21946 will get resolved). we think the feature is stable enough now.&lt;/p&gt;</description>
+      <description>In HBASE-21879, we redesigned the offheap read path: read the HFileBlock from HDFS to pooled offheap ByteBuffers directly, while before HBASE-21879 we just read the HFileBlock to heap which would still lead to high GC pressure.
+After few months of development and testing, all subtasks have been resovled now except the HBASE-21946 (It depends on HDFS-14483 and our HDFS teams are working on this, we expect the HDFS-14483 to be included in hadoop 2.</description>
     </item>
     <item>
       <title>从HBase offheap到Netty的内存管理</title>
       <link>https://openinx.github.io/posts/2019-02-23-netty-memory-management/</link>
       <pubDate>Sat, 23 Feb 2019 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2019-02-23-netty-memory-management/</guid>
-      <description>&lt;p&gt;&lt;strong&gt;HBase的offheap现状&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;HBase作为一款流行的分布式NoSQL数据库，被各个公司大量应用，其中有很多业务场景，例如信息流和广告业务，对访问的吞吐和延迟要求都非常高。HBase2.0为了尽最大可能避免Java GC对其造成的性能影响，已经对读写两条核心路径做了offheap化，也就是对象的申请都直接向JVM offheap申请，而offheap分出来的内存都是不会被JVM GC的，需要用户自己显式地释放。在写路径上，客户端发过来的请求包都会被分配到offheap的内存区域，直到数据成功写入WAL日志和Memstore，其中维护Memstore的ConcurrentSkipListSet其实也不是直接存Cell数据，而是存Cell的引用，真实的内存数据被编码在MSLAB的多个Chunk内，这样比较便于管理offheap内存。类似地，在读路径上，先尝试去读BucketCache，Cache未命中时则去HFile中读对应的Block，这其中占用内存最多的BucketCache就放在offheap上，拿到Block后编码成Cell发送给用户，整个过程基本上都不涉及heap内对象申请。&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/hbase-offheap-onheap.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;但是在小米内部最近的性能测试结果中发现，100% Get的场景受Young GC的影响仍然比较严重，在&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-21879&#34;&gt;HBASE-21879&lt;/a&gt;贴的两幅图中，可以非常明显的观察到Get操作的p999延迟跟G1 Young GC的耗时基本相同，都在100ms左右。按理说，在&lt;a href=&#34;https://issues.apache.org/jira/browse/HBASE-11425&#34;&gt;HBASE-11425&lt;/a&gt;之后，应该是所有的内存分配都是在offheap的，heap内应该几乎没有内存申请。但是，在仔细梳理代码后，发现从HFile中读Block的过程仍然是先拷贝到堆内去的，一直到BucketCache的WriterThread异步地把Block刷新到Offheap，堆内的DataBlock才释放。而磁盘型压测试验中，由于数据量大，Cache命中率并不高(~70%)，所以会有大量的Block读取走磁盘IO，于是Heap内产生大量的年轻代对象，最终导致Young区GC压力上升。&lt;/p&gt;
-&lt;p&gt;消除Young GC直接的思路就是从HFile读DataBlock的时候，直接往Offheap上读。之前留下这个坑，主要是HDFS不支持ByteBuffer的Pread接口，当然后面开了&lt;a href=&#34;https://issues.apache.org/jira/browse/HDFS-3246&#34;&gt;HDFS-3246&lt;/a&gt;在跟进这个事情。但后面发现的一个问题就是：Rpc路径上读出来的DataBlock，进了BucketCache之后其实是先放到一个叫做RamCache的临时Map中，而且Block一旦进了这个Map就可以被其他的RPC给命中，所以当前RPC退出后并不能直接就把之前读出来的DataBlock给释放了，必须考虑RamCache是否也释放了。于是，就需要一种机制来跟踪一块内存是否同时不再被所有RPC路径和RamCache引用，只有在都不引用的情况下，才能释放内存。自然而言的想到用reference Count机制来跟踪ByteBuffer，后面发现其实Netty已经较完整地实现了这个东西，于是看了一下Netty的内存管理机制。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Netty内存管理概述&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;Netty作为一个高性能的基础框架，为了保证GC对性能的影响降到最低，做了大量的offheap化。而offheap的内存是程序员自己申请和释放，忘记释放或者提前释放都会造成内存泄露问题，所以一个好的内存管理器很重要。首先，什么样的内存分配器，才算一个是一个“好”的内存分配器：&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;高并发且线程安全。一般一个进程共享一个全局的内存分配器，得保证多线程并发申请释放既高效又不出问题。&lt;/li&gt;
-&lt;li&gt;高效的申请和释放内存，这个不用多说。&lt;/li&gt;
-&lt;li&gt;方便跟踪分配出去内存的生命周期和定位内存泄露问题。&lt;/li&gt;
-&lt;li&gt;高效的内存利用率。有些内存分配器分配到一定程度，虽然还空闲大量内存碎片，但却再也没法分出一个稍微大一点的内存来。所以需要通过更精细化的管理，实现更高的内存利用率。&lt;/li&gt;
-&lt;li&gt;尽量保证同一个对象在物理内存上存储的连续性。例如分配器当前已经无法分配出一块完整连续的70MB内存来，有些分配器可能会通过多个内存碎片拼接出一块70MB的内存，但其实合适的算法设计，可以保证更高的连续性，从而实现更高的内存访问效率。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;为了优化多线程竞争申请内存带来额外开销，Netty的PooledByteBufAllocator默认为每个处理器初始化了一个内存池，多个线程通过Hash选择某个特定的内存池。这样即使是多处理器并发处理的情况下，每个处理器基本上能使用各自独立的内存池，从而缓解竞争导致的同步等待开销。&lt;/p&gt;
-&lt;p&gt;Netty的内存管理设计的比较精细。首先，将内存划分成一个个16MB的Chunk，每个Chunk又由2048个8KB的Page组成。这里需要提一下，对每一次内存申请，都将二进制对齐，例如需要申请150B的内存，则实际待申请的内存其实是256B，而且一个Page在未进Cache前（后续会讲到Cache）都只能被一次申请占用，也就是说一个Page内申请了256B的内存后，后面的请求也将不会在这个Page中申请，而是去找其他完全空闲的Page。有人可能会疑问，那这样岂不是内存利用率超低？因为一个8KB的Page被分配了256B之后，就再也分配了。其实不是，因为后面进了Cache后，还是可以分配出31个256B的ByteBuffer的。&lt;/p&gt;
-&lt;p&gt;多个Chunk又可以组成一个ChunkList，再根据Chunk内存占用比例（Chunk使用内存/16MB * 100%）划分成不同等级的ChunkList。例如，下图中根据内存使用比例不同，分成了6个不同等级的ChunkList，其中q050内的Chunk都是占用比例在[50,100)这个区间内。随着内存的不断分配，q050内的某个Chunk占用比例可能等于100，则该Chunk被挪到q075这个ChunkList中。因为内存一直在申请和释放，上面那个Chunk可能因某些对象释放后，导致内存占用比小于75，则又会被放回到q050这个ChunkList中；当然也有可能某次分配后，内存占用比例再次到达100，则会被挪到q100内。这样设计的一个好处在于，可以尽量让申请请求落在比较空闲的Chunk上，从而提高了内存分配的效率。&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/PoolThreadCache.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;仍以上述为例，某对象A申请了150B内存，二进制对齐后实际申请了256B的内存。对象A释放后，对应申请的Page也就释放，Netty为了提高内存的使用效率，会把这些Page放到对应的Cache中，对象A申请的Page是按照256B来划分的，所以直接按上图所示，进入了一个叫做TinySubPagesCaches的缓冲池。这个缓冲池实际上是由多个队列组成，每个队列内代表Page划分的不同尺寸，例如queue-&amp;gt;32B，表示这个队列中，缓存的都是按照32B来划分的Page，一旦有32B的申请请求，就直接去这个队列找 &lt;strong&gt;未占满的Page&lt;/strong&gt;。这里，可以发现，队列中的同一个Page可以被多次申请，只是他们申请的内存大小都一样，这也就不存在之前说的内存占用率低的问题，反而占用率会比较高。&lt;/p&gt;
-&lt;p&gt;当然，Cache又按照Page内部划分量（称之为elemSizeOfPage，也就是一个Page内会划分成8KB/elemSizeOfPage个相等大小的小块）分成3个不同类型的Cache。对那些小于512B的申请请求，将尝试去TinySubPagesCaches中申请；对那些小于8KB的申请请求，将尝试去SmallSubPagesDirectCaches中申请；对那些小于16MB的申请请求，将尝试去NormalDirectCaches中申请。若对应的Cache中，不存在能用的内存，则直接去下面的6个ChunkList中找Chunk申请，当然这些Chunk有可能都被申请满了，那么只能向Offheap直接申请一个Chunk来满足需求了。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Chunk内部分配的连续性（cache coherence）&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;上文基本理清了Chunk之上内存申请的原理，总体来看，Netty的内存分配还是做的非常精细的，从算法上看，无论是 &lt;strong&gt;申请/释放效率&lt;/strong&gt; 还是 &lt;strong&gt;内存利用率&lt;/strong&gt; 都比较有保障。这里简单阐述一下Chunk内部如何分配内存。&lt;/p&gt;
-&lt;p&gt;一个问题就是：如果要在一个Chunk内申请32KB的内存，那么Chunk应该怎么分配Page才比较高效，同时用户的内存访问效率比较高？&lt;/p&gt;
-&lt;p&gt;一个简单的思路就是，把16MB的Chunk划分成2048个8KB的Page，然后用一个队列来维护这些Page。如果一个Page被用户申请，则从队列中出队；Page被用户释放，则重新入队。这样内存的分配和释放效率都非常高，都是O(1)的复杂度。但问题是，一个32KB对象会被分散在4个不连续的Page，用户的内存访问效率会受到影响。&lt;/p&gt;
-&lt;p&gt;Netty的Chunk内分配算法，则兼顾了 &lt;strong&gt;申请/释放效率&lt;/strong&gt; 和 &lt;strong&gt;用户内存访问效率&lt;/strong&gt;。提高用户内存访问效率的一种方式就是，无论用户申请多大的内存量，都让它落在一块连续的物理内存上，这种特性我们称之为 &lt;strong&gt;Cache coherence&lt;/strong&gt;。&lt;/p&gt;
-&lt;p&gt;来看一下Netty的算法设计：&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/netty-chuck-allocation.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;首先，16MB的Chunk分成2048个8KB的Page，这2048个Page正好可以组成一颗完全二叉树（类似堆数据结构），这颗完全二叉树可以用一个int[] map来维护。例如，map[1]就表示root，map[2]就表示root的左儿子，map[3]就表示root的右儿子，依次类推，map[2048]是第一个叶子节点，map[2049]是第二个叶子节点&amp;hellip;，map[4095]是最后一个叶子节点。这2048个叶子节点，正好依次对应2048个Page。&lt;/p&gt;
-&lt;p&gt;这棵树的特点就是，任何一颗子树的所有Page都是在物理内存上连续的。所以，申请32KB的物理内存连续的操作，可以转变成找一颗正好有4个Page空闲的子树，这样就解决了用户内存访问效率的问题，保证了Cache Coherence特性。&lt;/p&gt;
-&lt;p&gt;但如何解决分配和释放的效率的问题呢？&lt;/p&gt;
-&lt;p&gt;思路其实不是特别难，但是Netty中用各种二进制优化之后，显的不那么容易理解。所以，我画了一副图。其本质就是，完全二叉树的每个节点id都维护一个map[id]值，这个值表示以id为根的子树上，按照层次遍历，第一个完全空闲子树对应根节点的深度。例如在step.3图中，id=2，层次遍历碰到的第一颗完全空闲子树是id=5为根的子树，它的深度为2，所以map[2]=2。&lt;/p&gt;
-&lt;p&gt;理解了map[id]这个概念之后，再看图其实就没有那么难理解了。图中画的是在一个64KB的chunk（由8个page组成，对应树最底层的8个叶子节点）上，依次分配8KB、32KB、16KB的维护流程。可以发现，无论是申请内存，还是释放内存，操作的复杂度都是log(N)，N代表节点的个数。而在Netty中，N=2048，所以申请、释放内存的复杂度都可以认为是常数级别的。&lt;/p&gt;
-&lt;p&gt;通过上述算法，Netty同时保证了Chunk内部分配/申请多个Pages的高效和用户内存访问的高效。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;引用计数和内存泄露检查&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;上文提到，HBase的ByteBuf也尝试采用引用计数来跟踪一块内存的生命周期，被引用一次则其refCount++，取消引用则refCount&amp;ndash; ，一旦refCount=0则认为内存可以回收到内存池。思路很简单，只是需要考虑下线程安全的问题。&lt;/p&gt;
-&lt;p&gt;但事实上，即使有了引用计数，可能还是容易碰到忘记显式refCount&amp;ndash; 的操作，Netty提供了一个叫做ResourceLeakDetector的跟踪器。在Enable状态下，任何分出去的ByteBuf都会进入这个跟踪器中，回收ByteBuf时则从跟踪器中删除。一旦发现某个时间点跟踪器内的ByteBuff总数太大，则认为存在内存泄露。开启这个功能必然会对性能有所影响，所以生产环境下都不开这个功能，只有在怀疑有内存泄露问题时开启用来定位问题用。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;总结&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;Netty的内存管理其实做的很精细，对HBase的Offheap化设计有不少启发。目前HBase的内存分配器至少有3种：&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Rpc路径上offheap内存分配器。实现较为简单，以定长64KB为单位分配Page给对象，发现Offheap池无法分出来，则直接去Heap申请。&lt;/li&gt;
-&lt;li&gt;Memstore的MSLAB内存分配器，核心思路跟RPC内存分配器相差不大。应该可以合二为一。&lt;/li&gt;
-&lt;li&gt;BucketCache上的BucketAllocator。&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;就第1点和第2点而言，我觉得今后尝试改成用Netty的PooledByteBufAllocator应该问题不大，毕竟Netty在多核并发/内存利用率以及CacheCoherence上都做了不少优化。由于BucketCache既可以存内存，又可以存SSD磁盘，甚至HDD磁盘。所以BucketAllocator做了更高程度的抽象，维护的都是一个(offset,len)这样的二元组，Netty现有的接口并不能满足需求，所以估计暂时只能维持现状。&lt;/p&gt;
-&lt;p&gt;可以预期的是，HBase2.0性能必定是朝更好方向发展的，尤其是GC对P999的影响会越来越小。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;参考资料&lt;/strong&gt;&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;&lt;a href=&#34;https://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf&#34;&gt;https://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919/&#34;&gt;https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919/&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://netty.io/wiki/reference-counted-objects.html&#34;&gt;https://netty.io/wiki/reference-counted-objects.html&lt;/a&gt;&lt;/li&gt;
-&lt;/ol&gt;</description>
+      <description>HBase的offheap现状
+HBase作为一款流行的分布式NoSQL数据库，被各个公司大量应用，其中有很多业务场景，例如信息流和广告业务，对访问的吞吐和延迟要求都非常高。HBase2.0为了尽最大可能避免Java GC对其造成的性能影响，已经对读写两条核心路径做了offheap化，也就是对象的申请都直接向JVM offheap申请，而offheap分出来的内存都是不会被JVM GC的，需要用户自己显式地释放。在写路径上，客户端发过来的请求包都会被分配到offheap的内存区域，直到数据成功写入WAL日志和Memstore，其中维护Memstore的ConcurrentSkipListSet其实也不是直接存Cell数据，而是存Cell的引用，真实的内存数据被编码在MSLAB的多个Chunk内，这样比较便于管理offheap内存。类似地，在读路径上，先尝试去读BucketCache，Cache未命中时则去HFile中读对应的Block，这其中占用内存最多的BucketCache就放在offheap上，拿到Block后编码成Cell发送给用户，整个过程基本上都不涉及heap内对象申请。
+但是在小米内部最近的性能测试结果中发现，100% Get的场景受Young GC的影响仍然比较严重，在HBASE-21879贴的两幅图中，可以非常明显的观察到Get操作的p999延迟跟G1 Young GC的耗时基本相同，都在100ms左右。按理说，在HBASE-11425之后，应该是所有的内存分配都是在offheap的，heap内应该几乎没有内存申请。但是，在仔细梳理代码后，发现从HFile中读Block的过程仍然是先拷贝到堆内去的，一直到BucketCache的WriterThread异步地把Block刷新到Offheap，堆内的DataBlock才释放。而磁盘型压测试验中，由于数据量大，Cache命中率并不高(~70%)，所以会有大量的Block读取走磁盘IO，于是Heap内产生大量的年轻代对象，最终导致Young区GC压力上升。
+消除Young GC直接的思路就是从HFile读DataBlock的时候，直接往Offheap上读。之前留下这个坑，主要是HDFS不支持ByteBuffer的Pread接口，当然后面开了HDFS-3246在跟进这个事情。但后面发现的一个问题就是：Rpc路径上读出来的DataBlock，进了BucketCache之后其实是先放到一个叫做RamCache的临时Map中，而且Block一旦进了这个Map就可以被其他的RPC给命中，所以当前RPC退出后并不能直接就把之前读出来的DataBlock给释放了，必须考虑RamCache是否也释放了。于是，就需要一种机制来跟踪一块内存是否同时不再被所有RPC路径和RamCache引用，只有在都不引用的情况下，才能释放内存。自然而言的想到用reference Count机制来跟踪ByteBuffer，后面发现其实Netty已经较完整地实现了这个东西，于是看了一下Netty的内存管理机制。
+Netty内存管理概述
+Netty作为一个高性能的基础框架，为了保证GC对性能的影响降到最低，做了大量的offheap化。而offheap的内存是程序员自己申请和释放，忘记释放或者提前释放都会造成内存泄露问题，所以一个好的内存管理器很重要。首先，什么样的内存分配器，才算一个是一个“好”的内存分配器：
+高并发且线程安全。一般一个进程共享一个全局的内存分配器，得保证多线程并发申请释放既高效又不出问题。 高效的申请和释放内存，这个不用多说。 方便跟踪分配出去内存的生命周期和定位内存泄露问题。 高效的内存利用率。有些内存分配器分配到一定程度，虽然还空闲大量内存碎片，但却再也没法分出一个稍微大一点的内存来。所以需要通过更精细化的管理，实现更高的内存利用率。 尽量保证同一个对象在物理内存上存储的连续性。例如分配器当前已经无法分配出一块完整连续的70MB内存来，有些分配器可能会通过多个内存碎片拼接出一块70MB的内存，但其实合适的算法设计，可以保证更高的连续性，从而实现更高的内存访问效率。 为了优化多线程竞争申请内存带来额外开销，Netty的PooledByteBufAllocator默认为每个处理器初始化了一个内存池，多个线程通过Hash选择某个特定的内存池。这样即使是多处理器并发处理的情况下，每个处理器基本上能使用各自独立的内存池，从而缓解竞争导致的同步等待开销。
+Netty的内存管理设计的比较精细。首先，将内存划分成一个个16MB的Chunk，每个Chunk又由2048个8KB的Page组成。这里需要提一下，对每一次内存申请，都将二进制对齐，例如需要申请150B的内存，则实际待申请的内存其实是256B，而且一个Page在未进Cache前（后续会讲到Cache）都只能被一次申请占用，也就是说一个Page内申请了256B的内存后，后面的请求也将不会在这个Page中申请，而是去找其他完全空闲的Page。有人可能会疑问，那这样岂不是内存利用率超低？因为一个8KB的Page被分配了256B之后，就再也分配了。其实不是，因为后面进了Cache后，还是可以分配出31个256B的ByteBuffer的。
+多个Chunk又可以组成一个ChunkList，再根据Chunk内存占用比例（Chunk使用内存/16MB * 100%）划分成不同等级的ChunkList。例如，下图中根据内存使用比例不同，分成了6个不同等级的ChunkList，其中q050内的Chunk都是占用比例在[50,100)这个区间内。随着内存的不断分配，q050内的某个Chunk占用比例可能等于100，则该Chunk被挪到q075这个ChunkList中。因为内存一直在申请和释放，上面那个Chunk可能因某些对象释放后，导致内存占用比小于75，则又会被放回到q050这个ChunkList中；当然也有可能某次分配后，内存占用比例再次到达100，则会被挪到q100内。这样设计的一个好处在于，可以尽量让申请请求落在比较空闲的Chunk上，从而提高了内存分配的效率。
+仍以上述为例，某对象A申请了150B内存，二进制对齐后实际申请了256B的内存。对象A释放后，对应申请的Page也就释放，Netty为了提高内存的使用效率，会把这些Page放到对应的Cache中，对象A申请的Page是按照256B来划分的，所以直接按上图所示，进入了一个叫做TinySubPagesCaches的缓冲池。这个缓冲池实际上是由多个队列组成，每个队列内代表Page划分的不同尺寸，例如queue-&amp;gt;32B，表示这个队列中，缓存的都是按照32B来划分的Page，一旦有32B的申请请求，就直接去这个队列找 未占满的Page。这里，可以发现，队列中的同一个Page可以被多次申请，只是他们申请的内存大小都一样，这也就不存在之前说的内存占用率低的问题，反而占用率会比较高。
+当然，Cache又按照Page内部划分量（称之为elemSizeOfPage，也就是一个Page内会划分成8KB/elemSizeOfPage个相等大小的小块）分成3个不同类型的Cache。对那些小于512B的申请请求，将尝试去TinySubPagesCaches中申请；对那些小于8KB的申请请求，将尝试去SmallSubPagesDirectCaches中申请；对那些小于16MB的申请请求，将尝试去NormalDirectCaches中申请。若对应的Cache中，不存在能用的内存，则直接去下面的6个ChunkList中找Chunk申请，当然这些Chunk有可能都被申请满了，那么只能向Offheap直接申请一个Chunk来满足需求了。
+Chunk内部分配的连续性（cache coherence）
+上文基本理清了Chunk之上内存申请的原理，总体来看，Netty的内存分配还是做的非常精细的，从算法上看，无论是 申请/释放效率 还是 内存利用率 都比较有保障。这里简单阐述一下Chunk内部如何分配内存。
+一个问题就是：如果要在一个Chunk内申请32KB的内存，那么Chunk应该怎么分配Page才比较高效，同时用户的内存访问效率比较高？
+一个简单的思路就是，把16MB的Chunk划分成2048个8KB的Page，然后用一个队列来维护这些Page。如果一个Page被用户申请，则从队列中出队；Page被用户释放，则重新入队。这样内存的分配和释放效率都非常高，都是O(1)的复杂度。但问题是，一个32KB对象会被分散在4个不连续的Page，用户的内存访问效率会受到影响。
+Netty的Chunk内分配算法，则兼顾了 申请/释放效率 和 用户内存访问效率。提高用户内存访问效率的一种方式就是，无论用户申请多大的内存量，都让它落在一块连续的物理内存上，这种特性我们称之为 Cache coherence。
+来看一下Netty的算法设计：
+首先，16MB的Chunk分成2048个8KB的Page，这2048个Page正好可以组成一颗完全二叉树（类似堆数据结构），这颗完全二叉树可以用一个int[] map来维护。例如，map[1]就表示root，map[2]就表示root的左儿子，map[3]就表示root的右儿子，依次类推，map[2048]是第一个叶子节点，map[2049]是第二个叶子节点&amp;hellip;，map[4095]是最后一个叶子节点。这2048个叶子节点，正好依次对应2048个Page。
+这棵树的特点就是，任何一颗子树的所有Page都是在物理内存上连续的。所以，申请32KB的物理内存连续的操作，可以转变成找一颗正好有4个Page空闲的子树，这样就解决了用户内存访问效率的问题，保证了Cache Coherence特性。
+但如何解决分配和释放的效率的问题呢？
+思路其实不是特别难，但是Netty中用各种二进制优化之后，显的不那么容易理解。所以，我画了一副图。其本质就是，完全二叉树的每个节点id都维护一个map[id]值，这个值表示以id为根的子树上，按照层次遍历，第一个完全空闲子树对应根节点的深度。例如在step.3图中，id=2，层次遍历碰到的第一颗完全空闲子树是id=5为根的子树，它的深度为2，所以map[2]=2。
+理解了map[id]这个概念之后，再看图其实就没有那么难理解了。图中画的是在一个64KB的chunk（由8个page组成，对应树最底层的8个叶子节点）上，依次分配8KB、32KB、16KB的维护流程。可以发现，无论是申请内存，还是释放内存，操作的复杂度都是log(N)，N代表节点的个数。而在Netty中，N=2048，所以申请、释放内存的复杂度都可以认为是常数级别的。
+通过上述算法，Netty同时保证了Chunk内部分配/申请多个Pages的高效和用户内存访问的高效。
+引用计数和内存泄露检查
+上文提到，HBase的ByteBuf也尝试采用引用计数来跟踪一块内存的生命周期，被引用一次则其refCount++，取消引用则refCount&amp;ndash; ，一旦refCount=0则认为内存可以回收到内存池。思路很简单，只是需要考虑下线程安全的问题。
+但事实上，即使有了引用计数，可能还是容易碰到忘记显式refCount&amp;ndash; 的操作，Netty提供了一个叫做ResourceLeakDetector的跟踪器。在Enable状态下，任何分出去的ByteBuf都会进入这个跟踪器中，回收ByteBuf时则从跟踪器中删除。一旦发现某个时间点跟踪器内的ByteBuff总数太大，则认为存在内存泄露。开启这个功能必然会对性能有所影响，所以生产环境下都不开这个功能，只有在怀疑有内存泄露问题时开启用来定位问题用。
+总结
+Netty的内存管理其实做的很精细，对HBase的Offheap化设计有不少启发。目前HBase的内存分配器至少有3种：
+Rpc路径上offheap内存分配器。实现较为简单，以定长64KB为单位分配Page给对象，发现Offheap池无法分出来，则直接去Heap申请。 Memstore的MSLAB内存分配器，核心思路跟RPC内存分配器相差不大。应该可以合二为一。 BucketCache上的BucketAllocator。 就第1点和第2点而言，我觉得今后尝试改成用Netty的PooledByteBufAllocator应该问题不大，毕竟Netty在多核并发/内存利用率以及CacheCoherence上都做了不少优化。由于BucketCache既可以存内存，又可以存SSD磁盘，甚至HDD磁盘。所以BucketAllocator做了更高程度的抽象，维护的都是一个(offset,len)这样的二元组，Netty现有的接口并不能满足需求，所以估计暂时只能维持现状。
+可以预期的是，HBase2.0性能必定是朝更好方向发展的，尤其是GC对P999的影响会越来越小。
+参考资料
+https://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919/ https://netty.io/wiki/reference-counted-objects.html </description>
     </item>
     <item>
       <title>HBaseConWest2018演讲 - HBase Practice In XiaoMi</title>
       <link>https://openinx.github.io/posts/2018-06-18-hbaseconwest2018/</link>
       <pubDate>Mon, 18 Jun 2018 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2018-06-18-hbaseconwest2018/</guid>
-      <description>&lt;p&gt;&lt;a href=&#34;http://hbase-help.com/?/article/15&#34;&gt;HBaseConWest2018&lt;/a&gt;于6.18日在美国加州圣何塞举办，本次会议由Hortonworks承办。每年去美国硅谷参加HBaseConWest已经算是小米HBase团队的惯例了，一方面小米团队在HBase社区的影响力有目共睹，目前已经培养了7位HBase Committer，其中有2位HBase PMC；另外一方面，小米内部也很乐意对外去分享公司一年所做的工作，相当于把一年的工作（包括内部的实践以及社区贡献）做一个&lt;a href=&#34;http://hbase-help.com/?/question/64&#34;&gt;年度总结&lt;/a&gt;分享给大家。&lt;/p&gt;
-&lt;p&gt;所以，2018年我们也很积极的提交了演讲议题(HBase Practice In XiaoMi)，并花了很多精力整理总结，内部还做过3次英文试讲。但遗憾的是，今年中美关系比较紧张，美国签证没有如期办下来。按照组内历年的经验，一般提前一个月左右办理签证，能很顺利办下来。今年我们在5.14日去大使馆面试申请签证，被要求填写补充材料，在5.16拿到承办方的visa letter并提交补充材料之后，一直到现在签证尚未发放。本想没办法去现场的话，就只能把我们这个议题提交到8.17日的HBaseConAsia去讲。写邮件跟组委会沟通，组委会之前把我们talk的优先级放的比较高，也比较喜欢我们演讲内容，所以后面就想让我们做一个远程分享。为了以防万一设备异常之类的，就先让我们准备一个视频，有任何异常的话，直接放视频也不慌。于是，我们就录了一个，发现视频效果还行（主要是可以做剪辑，哈哈），就跟组委会说，现场干脆直接用视频好了，有任何疑问的话，远程答疑就好。&lt;/p&gt;
-&lt;p&gt;于是，最后在HBaseConWest2018上看到的就是以下PPT和视频了。演讲内容主要分两部分，第一部分小米内部实践，由我的同事田竞云来分享，第二部分复制功能改进，由我来分享。&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;&lt;a href=&#34;https://openinx.github.io/ppt/hbase-practice-at-xiaomi-hbasecon2018.pdf&#34;&gt;PPT&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href=&#34;https://pan.baidu.com/s/10svpfoSU2hJaOqAMTQl2og&#34;&gt;Video&lt;/a&gt;&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;总体来说，没有机会去HBaseConWest2018现场分享这个事情，个人还是挺遗憾的。之前Hortonworks的Ted Yu和Pinterest的TianYing获知我们要去美国分享，都很积极的约了我们聚会，最后也只能取消。原定的去美国一些其他行程，也只得取消。有一点值得欣慰的是，在组委会和我们的共同努力下，总算是有机会把小米过去一年做的一些工作整理并呈现给大家，包括美国HBase社区的朋友们。感谢组委会和社区，也感谢铎神和小豪在试讲中提出的很多宝贵建议。&lt;/p&gt;</description>
+      <description>HBaseConWest2018于6.18日在美国加州圣何塞举办，本次会议由Hortonworks承办。每年去美国硅谷参加HBaseConWest已经算是小米HBase团队的惯例了，一方面小米团队在HBase社区的影响力有目共睹，目前已经培养了7位HBase Committer，其中有2位HBase PMC；另外一方面，小米内部也很乐意对外去分享公司一年所做的工作，相当于把一年的工作（包括内部的实践以及社区贡献）做一个年度总结分享给大家。
+所以，2018年我们也很积极的提交了演讲议题(HBase Practice In XiaoMi)，并花了很多精力整理总结，内部还做过3次英文试讲。但遗憾的是，今年中美关系比较紧张，美国签证没有如期办下来。按照组内历年的经验，一般提前一个月左右办理签证，能很顺利办下来。今年我们在5.14日去大使馆面试申请签证，被要求填写补充材料，在5.16拿到承办方的visa letter并提交补充材料之后，一直到现在签证尚未发放。本想没办法去现场的话，就只能把我们这个议题提交到8.17日的HBaseConAsia去讲。写邮件跟组委会沟通，组委会之前把我们talk的优先级放的比较高，也比较喜欢我们演讲内容，所以后面就想让我们做一个远程分享。为了以防万一设备异常之类的，就先让我们准备一个视频，有任何异常的话，直接放视频也不慌。于是，我们就录了一个，发现视频效果还行（主要是可以做剪辑，哈哈），就跟组委会说，现场干脆直接用视频好了，有任何疑问的话，远程答疑就好。
+于是，最后在HBaseConWest2018上看到的就是以下PPT和视频了。演讲内容主要分两部分，第一部分小米内部实践，由我的同事田竞云来分享，第二部分复制功能改进，由我来分享。
+PPT Video 总体来说，没有机会去HBaseConWest2018现场分享这个事情，个人还是挺遗憾的。之前Hortonworks的Ted Yu和Pinterest的TianYing获知我们要去美国分享，都很积极的约了我们聚会，最后也只能取消。原定的去美国一些其他行程，也只得取消。有一点值得欣慰的是，在组委会和我们的共同努力下，总算是有机会把小米过去一年做的一些工作整理并呈现给大家，包括美国HBase社区的朋友们。感谢组委会和社区，也感谢铎神和小豪在试讲中提出的很多宝贵建议。</description>
     </item>
     <item>
       <title>TokuDB的多版本并发控制(MVCC)</title>
       <link>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</link>
       <pubDate>Sun, 13 Dec 2015 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2015-12-13-ft-mvcc/</guid>
-      <description>&lt;blockquote&gt;
-&lt;p&gt;本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。&lt;/p&gt;&lt;/blockquote&gt;
-&lt;h3 id=&#34;背景介绍&#34;&gt;背景介绍&lt;/h3&gt;
-&lt;p&gt;在传统的关系型数据库（例如Oracle, MySQL, SQLServer）中，事务可以说是研发和讨论最核心内容。而事务最核心的性质就是ACID。 其中 A表示事务的原子性，也就是组成事务的所有子任务只有两种结果： 要么随着事务的提交，所有子任务都成功执行；要么随着事务的回滚，所有子任务都撤销。 C表示一致性，也就是无论事务提交或者回滚，都不能破坏数据的一致性约束，这些一致性约束包括键值唯一约束、键值关联关系约束等。I表示隔离性，隔离性一般是针对多个并发事务而言的，也就是在同一个时间点，t1事务和t2事务读取的数据应该是隔离的，这两个事务就好像进了同一酒店的两间房间一样，各自在各自的房间里面活动，他们相互之间并不能看到各自在干嘛。D表示持久性，这个性质保证了一个事务一旦承诺用户成功提交，那么即便是后继数据库进程crash或者操作系统crash，只要磁盘数据没坏，那么下次启动数据库后，这个事务的执行结果仍然可以读取到。&lt;/p&gt;
-&lt;p&gt;TokuDB目前完全支持事务的ACID。 从实现上看， 由于TokuDB采用的&lt;a href=&#34;https://openinx.github.io/posts/2015-11-25-ft-index-implement/&#34;&gt;分形树&lt;/a&gt;作为索引，而InnoDB采用B+树作为索引结构，因而TokuDB在事务的实现上和InnoDB有很大不同。 本文主要讲讲TokuDB的事务隔离性的实现，也就是常提到的多版本并发控制(MVCC)。在InnoDB中， 设计了redo和undo两种日志，redo存放页的物理修改日志，用来保证事务的持久性； undo存放事务的逻辑修改日志，它实际存放了一条记录在多个并发事务下的多个版本，用来实现事务的隔离性(MVCC)和回滚操作。&lt;/p&gt;
-&lt;p&gt;由于TokuDB的分形树采用消息传递的方式来做增删改更新操作，一条消息就是事务对该记录修改的一个版本，因此，在TokuDB源码实现中，并没有额外的undo-log的概念和实现，取而代之的是一条记录多条消息的管理机制。虽然一条记录多条消息的方式可以实现事务的MVCC，却无法解决事务回滚的问题，因此TokuDB额外设计了tokudb.rollback这个日志文件来做帮助实现事务回滚。&lt;/p&gt;
-&lt;h3 id=&#34;tokudb的事务表示&#34;&gt;TokuDB的事务表示&lt;/h3&gt;
-&lt;p&gt;在tokudb中， 在用户执行的一个事务，具体到存储引擎层面会被拆开成许多个小事务(这种小事务记为txn)。 例如用户执行这样一个事务：&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;begin&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;insert&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;into&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;hello&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;set&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;id&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;1&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; 
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;commit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;对应到TokuDB存储引擎的redo-log中的记录为：&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-sql&#34; data-lang=&#34;sql&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;xbegin&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;          &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;b&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236599&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;parentxid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;29&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;e4d0a1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;53&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xbegin&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;          &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;b&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236600&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;parentxid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;282&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;cb1a1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;53&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;enq_insert&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;      &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;I&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236601&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;filenum&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;13&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;k&#34;&gt;key&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;value&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;a42128e5&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;58&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xcommit&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;         &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;C&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236602&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ec9bba3d&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;37&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xprepare&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;        &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;P&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236603&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xa_xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;{&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;...&lt;/span&gt;&lt;span class=&#34;err&#34;&gt;}&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;db091de4&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;67&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;w&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xcommit&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;         &lt;/span&gt;&lt;span class=&#34;s1&#34;&gt;&amp;#39;C&amp;#39;&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;lsn&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;236604&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;xid&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;15&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;crc&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;ec997b3d&lt;/span&gt;&lt;span class=&#34;w&#34;&gt; &lt;/span&gt;&lt;span class=&#34;n&#34;&gt;len&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;37&lt;/span&gt;&lt;span class=&#34;w&#34;&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;对应的事务树如下图所示：&lt;/p&gt;</description>
+      <description>本文讲讲TokuDB事务的隔离性，在源码实现中，比较复杂。为了便于描述，本文只对最关键的内容进行描述，对细节的东西略过。
+背景介绍 在传统的关系型数据库（例如Oracle, MySQL, SQLServer）中，事务可以说是研发和讨论最核心内容。而事务最核心的性质就是ACID。 其中 A表示事务的原子性，也就是组成事务的所有子任务只有两种结果： 要么随着事务的提交，所有子任务都成功执行；要么随着事务的回滚，所有子任务都撤销。 C表示一致性，也就是无论事务提交或者回滚，都不能破坏数据的一致性约束，这些一致性约束包括键值唯一约束、键值关联关系约束等。I表示隔离性，隔离性一般是针对多个并发事务而言的，也就是在同一个时间点，t1事务和t2事务读取的数据应该是隔离的，这两个事务就好像进了同一酒店的两间房间一样，各自在各自的房间里面活动，他们相互之间并不能看到各自在干嘛。D表示持久性，这个性质保证了一个事务一旦承诺用户成功提交，那么即便是后继数据库进程crash或者操作系统crash，只要磁盘数据没坏，那么下次启动数据库后，这个事务的执行结果仍然可以读取到。
+TokuDB目前完全支持事务的ACID。 从实现上看， 由于TokuDB采用的分形树作为索引，而InnoDB采用B+树作为索引结构，因而TokuDB在事务的实现上和InnoDB有很大不同。 本文主要讲讲TokuDB的事务隔离性的实现，也就是常提到的多版本并发控制(MVCC)。在InnoDB中， 设计了redo和undo两种日志，redo存放页的物理修改日志，用来保证事务的持久性； undo存放事务的逻辑修改日志，它实际存放了一条记录在多个并发事务下的多个版本，用来实现事务的隔离性(MVCC)和回滚操作。
+由于TokuDB的分形树采用消息传递的方式来做增删改更新操作，一条消息就是事务对该记录修改的一个版本，因此，在TokuDB源码实现中，并没有额外的undo-log的概念和实现，取而代之的是一条记录多条消息的管理机制。虽然一条记录多条消息的方式可以实现事务的MVCC，却无法解决事务回滚的问题，因此TokuDB额外设计了tokudb.rollback这个日志文件来做帮助实现事务回滚。
+TokuDB的事务表示 在tokudb中， 在用户执行的一个事务，具体到存储引擎层面会被拆开成许多个小事务(这种小事务记为txn)。 例如用户执行这样一个事务：
+begin; insert into hello set id = 1, value = &amp;#39;1&amp;#39;; commit; 对应到TokuDB存储引擎的redo-log中的记录为：
+xbegin &amp;#39;b&amp;#39;: lsn=236599 xid=15,0 parentxid=0,0 crc=29e4d0a1 len=53 xbegin &amp;#39;b&amp;#39;: lsn=236600 xid=15,1 parentxid=15,0 crc=282cb1a1 len=53 enq_insert &amp;#39;I&amp;#39;: lsn=236601 filenum=13 xid=15,1 key={...} value={...} crc=a42128e5 len=58 xcommit &amp;#39;C&amp;#39;: lsn=236602 xid=15,1 crc=ec9bba3d len=37 xprepare &amp;#39;P&amp;#39;: lsn=236603 xid=15,0 xa_xid={...} crc=db091de4 len=67 xcommit &amp;#39;C&amp;#39;: lsn=236604 xid=15,0 crc=ec997b3d len=37 对应的事务树如下图所示：</description>
     </item>
     <item>
       <title>TokuDB的索引结构：分形树的实现</title>
       <link>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</link>
       <pubDate>Wed, 25 Nov 2015 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2015-11-25-ft-index-implement/</guid>
-      <description>&lt;blockquote&gt;
-&lt;p&gt;本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query,  Insert/Delete/Update操作,  并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。&lt;/p&gt;&lt;/blockquote&gt;
-&lt;h3 id=&#34;分形树简介&#34;&gt;分形树简介&lt;/h3&gt;
-&lt;p&gt;分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的&lt;a href=&#34;https://en.wikipedia.org/wiki/B%2B_tree&#34;&gt;B+树&lt;/a&gt;)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。&lt;/p&gt;
-&lt;p&gt;工业界实现分形树最重要的产品就是&lt;a href=&#34;https://github.com/Tokutek&#34;&gt;Tokutek&lt;/a&gt;公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在&lt;a href=&#34;https://github.com/percona/PerconaFT&#34;&gt;Github&lt;/a&gt;上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为&lt;a href=&#34;https://github.com/percona/tokudb-engine&#34;&gt;TokuDB&lt;/a&gt;， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为&lt;a href=&#34;https://github.com/Tokutek/mongo&#34;&gt;TokuMX&lt;/a&gt;。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。&lt;/p&gt;
-&lt;p&gt;本文主要讨论的是TokuDB的ft-index。 ft-index相比B+树的几个重要特点有：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;从理论复杂度和测试性能两个角度上看， ft-index的Insert/Delete/Update操作性能优于B+树。  但是读操作性能低于B+树。&lt;/li&gt;
-&lt;li&gt;ft-index采用更大的索引页和数据页（ft-index默认为4M, InnoDB默认为16K）， 这使得ft-index的数据页和索引页的压缩比更高。也就是说，在打开索引页和数据页压缩的情况下，插入等量的数据， ft-index占用的存储空间更少。&lt;/li&gt;
-&lt;li&gt;ft-index支持在线修改DDL (Hot Schema Change)。 简单来讲，就是在做DDL操作的同时(例如添加索引)，用户依然可以执行写入操作， 这个特点是ft-index树形结构天然支持的。 由于篇幅限制，本文并不对Hot Schema Change的实现做具体描述。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;此外， ft-index还支持事务(ACID)以及事务的MVCC(Multiple Version Cocurrency Control 多版本并发控制)， 支持崩溃恢复。&lt;/p&gt;
-&lt;p&gt;正因为上述特点，  Percona公司宣称TokuDB一方面带给客户极大的性能提升， 另一方面还降低了客户的存储使用成本。&lt;/p&gt;
-&lt;h3 id=&#34;ft-index的磁盘存储结构&#34;&gt;ft-index的磁盘存储结构&lt;/h3&gt;
-&lt;p&gt;ft-index的索引结构图如下(在这里为了方便描述和理解，我对ft-index的二进制存储做了一定程度简化和抽象， 具体的二进制存储格式可以参考&lt;a href=&#34;http://openinx.github.io/2015/12/02/ft-layout/&#34;&gt;我的博客&lt;/a&gt;)：&lt;/p&gt;
-&lt;p&gt;在下图中， 灰色区域表示ft-index分形树的一个页，绿色区域表示一个键值，两格绿色区域之间表示一个儿子指针。 BlockNum表示儿子指针指向的页的偏移量。Fanout表示分形树的扇出，也就是儿子指针的个数。 NodeSize表示一个页占用的字节数。NonLeafNode表示当前页是一个非叶子节点，LeafNode表示当前页是一个叶子节点，叶子节点是最底层的存放Key-value键值对的节点， 非叶子节点不存放value。 Heigth表示树的高度， 根节点的高度为3， 根节点下一层节点的高度为2， 最底层叶子节点的高度为1。Depth表示树的深度，根节点的深度为0， 根节点的下一层节点深度为1。&lt;/p&gt;
-&lt;p&gt;&lt;img alt=&#34;image&#34; loading=&#34;lazy&#34; src=&#34;https://openinx.github.io/images/tokudb/ft-index-tree-structure.png&#34;&gt;&lt;/p&gt;
-&lt;p&gt;分形树的树形结构非常类似于B+树, 它的树形结构由若干个节点组成（我们称之为Node或者Block，在InnoDB中，我们称之为Page或者页）。 每个节点由一组有序的键值组成。假设一个节点的键值序列为[3, 8],  那么这个键值将(-00, +00)整个区间划分为(-00, 3), [3, 8), [8, +00) 这样3个区间， 每一个区间就对应着一个儿子指针（Child指针）。 在B+树中， Child指针一般指向一个页， 而在分形树中，每一个Child指针除了需要指向一个Node的地址(BlockNum)之外，还会带有一个Message Buffer (msg_buffer)， 这个Message Buffer 是一个先进先出(FIFO)的队列，用来存放Insert/Delete/Update/HotSchemaChange这样的更新操作。&lt;/p&gt;</description>
+      <description>本文从工程实现角度解析TokuDB的索引结构－－分形树。 详细描述了ft-index的磁盘存储结构，ft-index如何实现Point-Query, Range-Query, Insert/Delete/Update操作, 并在描述过程中，试图从各个角度和InnoDB的B+树做详细对比。
+分形树简介 分形树是一种写优化的磁盘索引数据结构。 在一般情况下， 分形树的写操作（Insert/Update/Delete）性能比较好，同时它还能保证读操作近似于B+树的读性能。据Percona公司测试结果显示, TokuDB分形树的写性能优于InnoDB的B+树)， 读性能略低于B+树。 类似的索引结构还有LSM-Tree, 但是LSM-Tree的写性能远优于读性能。
+工业界实现分形树最重要的产品就是Tokutek公司开发的ft-index（Fractal Tree Index）键值对存储引擎。这个项目自2007年开始研发，一直到2013年开源，代码目前托管在Github上。开源协议采用 GNU General Public License授权。 Tokutek公司为了充分发挥ft-index存储引擎的威力，基于K-V存储引擎之上，实现了MySQL存储引擎插件提供所有API接口，用来作为MySQL的存储引擎， 这个项目称之为TokuDB， 同时还实现了MongoDB存储引擎的API接口，这个项目称之为TokuMX。在2015年4月14日， Percona公司宣布收购Tokutek公司， ft-index/TokuDB/TokuMX这一系列产品被纳入Percona公司的麾下。自此， Percona公司宣称自己成为第一家同时提供MySQL和MongoDB软件及解决方案的技术厂商。
+本文主要讨论的是TokuDB的ft-index。 ft-index相比B+树的几个重要特点有：
+从理论复杂度和测试性能两个角度上看， ft-index的Insert/Delete/Update操作性能优于B+树。 但是读操作性能低于B+树。 ft-index采用更大的索引页和数据页（ft-index默认为4M, InnoDB默认为16K）， 这使得ft-index的数据页和索引页的压缩比更高。也就是说，在打开索引页和数据页压缩的情况下，插入等量的数据， ft-index占用的存储空间更少。 ft-index支持在线修改DDL (Hot Schema Change)。 简单来讲，就是在做DDL操作的同时(例如添加索引)，用户依然可以执行写入操作， 这个特点是ft-index树形结构天然支持的。 由于篇幅限制，本文并不对Hot Schema Change的实现做具体描述。 此外， ft-index还支持事务(ACID)以及事务的MVCC(Multiple Version Cocurrency Control 多版本并发控制)， 支持崩溃恢复。
+正因为上述特点， Percona公司宣称TokuDB一方面带给客户极大的性能提升， 另一方面还降低了客户的存储使用成本。
+ft-index的磁盘存储结构 ft-index的索引结构图如下(在这里为了方便描述和理解，我对ft-index的二进制存储做了一定程度简化和抽象， 具体的二进制存储格式可以参考我的博客)：
+在下图中， 灰色区域表示ft-index分形树的一个页，绿色区域表示一个键值，两格绿色区域之间表示一个儿子指针。 BlockNum表示儿子指针指向的页的偏移量。Fanout表示分形树的扇出，也就是儿子指针的个数。 NodeSize表示一个页占用的字节数。NonLeafNode表示当前页是一个非叶子节点，LeafNode表示当前页是一个叶子节点，叶子节点是最底层的存放Key-value键值对的节点， 非叶子节点不存放value。 Heigth表示树的高度， 根节点的高度为3， 根节点下一层节点的高度为2， 最底层叶子节点的高度为1。Depth表示树的深度，根节点的深度为0， 根节点的下一层节点深度为1。
+分形树的树形结构非常类似于B+树, 它的树形结构由若干个节点组成（我们称之为Node或者Block，在InnoDB中，我们称之为Page或者页）。 每个节点由一组有序的键值组成。假设一个节点的键值序列为[3, 8], 那么这个键值将(-00, +00)整个区间划分为(-00, 3), [3, 8), [8, +00) 这样3个区间， 每一个区间就对应着一个儿子指针（Child指针）。 在B+树中， Child指针一般指向一个页， 而在分形树中，每一个Child指针除了需要指向一个Node的地址(BlockNum)之外，还会带有一个Message Buffer (msg_buffer)， 这个Message Buffer 是一个先进先出(FIFO)的队列，用来存放Insert/Delete/Update/HotSchemaChange这样的更新操作。</description>
     </item>
     <item>
       <title>Vitess解析</title>
       <link>https://openinx.github.io/posts/2015-02-02-vitess-analysis/</link>
       <pubDate>Mon, 02 Feb 2015 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2015-02-02-vitess-analysis/</guid>
-      <description>&lt;p&gt;在线版本： &lt;a href=&#34;https://openinx.github.io/ppt/vitess-notes.html&#34;&gt;PPT&lt;/a&gt;&lt;br&gt;
-这是我在公司内部做的一次有关Vitess的技术分享, 要点有：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;vitess提供的功能模块／特性／系统架构&lt;/li&gt;
-&lt;li&gt;vitess的sharding方式&lt;/li&gt;
-&lt;li&gt;vitess支持的SQL语法集&lt;/li&gt;
-&lt;li&gt;vitess resharding的实现原理&lt;/li&gt;
-&lt;li&gt;vitess 数据备份原理&lt;/li&gt;
-&lt;li&gt;vitess 对比传统关系型数据库及NoSQL的优点和缺点&lt;/li&gt;
-&lt;/ul&gt;
-&lt;blockquote&gt;
-&lt;p&gt;小插曲&lt;/p&gt;&lt;/blockquote&gt;
-&lt;p&gt;为了尝试使用markdown制作在线的PPT， 我尝试了一些方案。最终选在了&lt;a href=&#34;http://remarkjs.com/&#34;&gt;remarkjs&lt;/a&gt;来制作在线版本的ppt，原因是:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;可以实现ppt文件的版本控制。这样在git中可以清晰的看到我的修改的增量。&lt;/li&gt;
-&lt;li&gt;remarkjs简单，只需要一个文件。 我尝试其他工具时，比如landslide， 会生成一堆文件，非常繁琐。&lt;/li&gt;
-&lt;li&gt;可以使用markdown语法编辑。&lt;/li&gt;
-&lt;/ul&gt;</description>
+      <description>在线版本： PPT
+这是我在公司内部做的一次有关Vitess的技术分享, 要点有：
+vitess提供的功能模块／特性／系统架构 vitess的sharding方式 vitess支持的SQL语法集 vitess resharding的实现原理 vitess 数据备份原理 vitess 对比传统关系型数据库及NoSQL的优点和缺点 小插曲
+为了尝试使用markdown制作在线的PPT， 我尝试了一些方案。最终选在了remarkjs来制作在线版本的ppt，原因是:
+可以实现ppt文件的版本控制。这样在git中可以清晰的看到我的修改的增量。 remarkjs简单，只需要一个文件。 我尝试其他工具时，比如landslide， 会生成一堆文件，非常繁琐。 可以使用markdown语法编辑。 </description>
     </item>
     <item>
       <title>LevelDB Compaction原理</title>
       <link>https://openinx.github.io/posts/2014-08-17-leveldb-compaction/</link>
       <pubDate>Tue, 16 Sep 2014 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2014-08-17-leveldb-compaction/</guid>
-      <description>&lt;h3 id=&#34;leveldb基本约束&#34;&gt;leveldb基本约束&lt;/h3&gt;
-&lt;p&gt;在默认options下，leveldb的一些基本约束:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;leveldb的level有0,1,2,3,4,5,6共7个取值;&lt;/li&gt;
-&lt;li&gt;第0层的sstable在4M左右;&lt;/li&gt;
-&lt;li&gt;第i(i&amp;gt;0)层的sstable每个sstable最大空间不超过2M;&lt;/li&gt;
-&lt;li&gt;第0层的sstable理想的情况是4个，尽量控制在8个以内，最大值不超过12;&lt;/li&gt;
-&lt;li&gt;第i(i&amp;gt;0)层的所有sstable所占存储空间之和控制在&lt;code&gt;10^i M&lt;/code&gt;左右;&lt;br&gt;
-这里说的_控制_不是指严格控制，而是总体上大致控制;&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id=&#34;compaction定义&#34;&gt;Compaction定义&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;minor compaction&lt;br&gt;
-从内存中拿出一个immtable，直接dump成sstable文件，然后根据_一定的策略_放到第i(i&amp;gt;=0)层。记_策略函数_为 PickLevelForMemTableOutput().&lt;/li&gt;
-&lt;li&gt;majar compaction&lt;br&gt;
-从第i(i&amp;gt;=0)层按照_估价函数_取出一个或多个sstable,这些sstable集合记为up(i)集合。找出第i+1层与up(i)集合有overlap的sstable，记为down(i)集合。将up(i),down(i)两个集合的所有sstable做多路归并排序之后，导出的sstable全部放在i+1层。这个过程称为majar compaction. 记计算up(i)集合的估价函数为PickCompaction(i).&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&#34;minor-compaction触发的条件&#34;&gt;Minor Compaction触发的条件&lt;/h3&gt;
-&lt;p&gt;以下几个条件同时满足时，才会触发Minor Compaction:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;在调用put/delete API时，发现memtable的使用空间超过4M了；&lt;/li&gt;
-&lt;li&gt;当前的immtable已经被dump出去成sstable. 也就是immtable=NULL&lt;br&gt;
-在上面的两个条件同时满足的情况下，会阻塞写线程，把memtable移到immtable。然后新起一个memtable，让写操作写到这个memtable里。最后将imm放到后台线程去做compaction.&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id=&#34;majar-compaction触发的条件&#34;&gt;Majar Compaction触发的条件&lt;/h3&gt;
-&lt;p&gt;以下任一条件满足时，都会触发Major Compaction:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;调用CompactRange这个API，手动触发compaction;&lt;/li&gt;
-&lt;li&gt;调用Get这个API的过程中，发现seek的第一个sstable的AllowedSeek消耗完了;&lt;/li&gt;
-&lt;li&gt;第0层的sstable超过8个;&lt;/li&gt;
-&lt;li&gt;第i(i&amp;gt;0)层的所有sstable的占用空间超过&lt;code&gt;10^i M&lt;/code&gt;;&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;其中第4点一般是在第i层做了一次compaction之后，发现i+1层的不满足_leveldb基本约束5_了，导致再做一次compaction.&lt;/p&gt;
-&lt;h3 id=&#34;minor-compaction流程&#34;&gt;Minor Compaction流程&lt;/h3&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;1.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sstable&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;MemtableDumpToSSTable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;immtable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;2.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PickLevelForMemTableOutput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sstable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;3.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;place&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;SSTable&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;3.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;edit&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;getVersionEdit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;mf&#34;&gt;4.&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;updateVersionSet&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;其中层次选择函数&lt;code&gt;PickLevelForMemTableOutput()&lt;/code&gt;如下：&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;kt&#34;&gt;int&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;PickLevelForMemTableOutput&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlap&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;with&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;])&lt;/span&gt;  &lt;span class=&#34;n&#34;&gt;OR&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlap&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;with&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]))&lt;/span&gt; 
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;k&#34;&gt;else&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;nl&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;calculateOverlapBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]);&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; 
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;           &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt; 
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;        &lt;span class=&#34;k&#34;&gt;else&lt;/span&gt; 
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;           &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;    &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;majar-compaction流程&#34;&gt;Majar Compaction流程&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;MajarCompaction()&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;c&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;nl&#34;&gt;i&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;PickCompaction&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt; &lt;span class=&#34;c1&#34;&gt;// i is level
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;==&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;  &lt;span class=&#34;n&#34;&gt;AND&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;down&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;).&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;size&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;==&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;0&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;{&lt;/span&gt;  &lt;span class=&#34;c1&#34;&gt;// down(i) is empty set.
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;   &lt;span class=&#34;nl&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;calculateOverlapBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;]);&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;overlapBytes&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;n&#34;&gt;Just&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;place&lt;/span&gt; &lt;span class=&#34;nf&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt; 
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;      &lt;span class=&#34;k&#34;&gt;return&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;DoCompactionWork&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;  &lt;span class=&#34;c1&#34;&gt;// 每次合并的数据量在26M左右。
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;c1&#34;&gt;&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;edit&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;updateEdit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;updateVersionSet&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;edit&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;DoCompactionWork(up(i), down(i))&lt;/code&gt;&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; class=&#34;chroma&#34;&gt;&lt;code class=&#34;language-cpp&#34; data-lang=&#34;cpp&#34;&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nl&#34;&gt;iter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;MergeIterator&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;up&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;),&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;down&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;));&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;nl&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;NewSStable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;k&#34;&gt;while&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;iter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Next&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()){&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;Add&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;iter&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;);&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;k&#34;&gt;if&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;bytesSize&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;()&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;OR&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;calculateOverlapBytes&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;Level&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;2&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;])&lt;/span&gt; &lt;span class=&#34;o&#34;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&#34;mi&#34;&gt;20&lt;/span&gt;&lt;span class=&#34;n&#34;&gt;M&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;){&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       &lt;span class=&#34;n&#34;&gt;Place&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;       &lt;span class=&#34;nl&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;p&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;NewSSTable&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;();&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;   &lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;p&#34;&gt;}&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;line&#34;&gt;&lt;span class=&#34;cl&#34;&gt;&lt;span class=&#34;n&#34;&gt;Place&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;sst&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;to&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;level&lt;/span&gt; &lt;span class=&#34;n&#34;&gt;i&lt;/span&gt;&lt;span class=&#34;o&#34;&gt;+&lt;/span&gt;&lt;span class=&#34;mi&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;p&#34;&gt;;&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;why-compaction&#34;&gt;Why Compaction?&lt;/h3&gt;
-&lt;p&gt;&lt;code&gt;miniorCompatcion()&lt;/code&gt;与&lt;code&gt;majarCompaction()&lt;/code&gt;其实在维护一个约束： &lt;em&gt;参与compaction的数据来量控制在25M～26M左右&lt;/em&gt;。&lt;/p&gt;</description>
+      <description>leveldb基本约束 在默认options下，leveldb的一些基本约束:
+leveldb的level有0,1,2,3,4,5,6共7个取值; 第0层的sstable在4M左右; 第i(i&amp;gt;0)层的sstable每个sstable最大空间不超过2M; 第0层的sstable理想的情况是4个，尽量控制在8个以内，最大值不超过12; 第i(i&amp;gt;0)层的所有sstable所占存储空间之和控制在10^i M左右;
+这里说的_控制_不是指严格控制，而是总体上大致控制; Compaction定义 minor compaction
+从内存中拿出一个immtable，直接dump成sstable文件，然后根据_一定的策略_放到第i(i&amp;gt;=0)层。记_策略函数_为 PickLevelForMemTableOutput(). majar compaction
+从第i(i&amp;gt;=0)层按照_估价函数_取出一个或多个sstable,这些sstable集合记为up(i)集合。找出第i+1层与up(i)集合有overlap的sstable，记为down(i)集合。将up(i),down(i)两个集合的所有sstable做多路归并排序之后，导出的sstable全部放在i+1层。这个过程称为majar compaction. 记计算up(i)集合的估价函数为PickCompaction(i). Minor Compaction触发的条件 以下几个条件同时满足时，才会触发Minor Compaction:
+在调用put/delete API时，发现memtable的使用空间超过4M了； 当前的immtable已经被dump出去成sstable. 也就是immtable=NULL
+在上面的两个条件同时满足的情况下，会阻塞写线程，把memtable移到immtable。然后新起一个memtable，让写操作写到这个memtable里。最后将imm放到后台线程去做compaction. Majar Compaction触发的条件 以下任一条件满足时，都会触发Major Compaction:
+调用CompactRange这个API，手动触发compaction; 调用Get这个API的过程中，发现seek的第一个sstable的AllowedSeek消耗完了; 第0层的sstable超过8个; 第i(i&amp;gt;0)层的所有sstable的占用空间超过10^i M; 其中第4点一般是在第i层做了一次compaction之后，发现i+1层的不满足_leveldb基本约束5_了，导致再做一次compaction.
+Minor Compaction流程 1. sstable = MemtableDumpToSSTable(immtable); 2. i = PickLevelForMemTableOutput(sstable); 3. place SSTable to level i; 3. edit= getVersionEdit(); 4. updateVersionSet(); 其中层次选择函数PickLevelForMemTableOutput()如下：
+int PickLevelForMemTableOutput(sst){ if( (sst overlap with Level[0]) OR (sst overlap with level[1])) return 0; else{ overlapBytes := calculateOverlapBytes(sst, level[2]); if( overlapBytes &amp;gt; 20M ) return 0 ; else return 1 ; } } Majar Compaction流程 MajarCompaction() c, i := PickCompaction(); // i is level if( up(i).</description>
     </item>
   </channel>
 </rss>
