@@ -14,11 +14,11 @@
     <lastBuildDate>Sun, 01 Jan 2012 13:27:08 +0800</lastBuildDate>
     <atom:link href="https://openinx.github.io/tags/share/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>我的公开分享</title>
+      <title>My Public Talks</title>
       <link>https://openinx.github.io/posts/2012-01-01-my-share/</link>
       <pubDate>Sun, 01 Jan 2012 13:27:08 +0800</pubDate>
       <guid>https://openinx.github.io/posts/2012-01-01-my-share/</guid>
-      <description>2021.01.08 Flink Forward Asia 2021 Beijing: The Best Practice of Integrating Apache Flink with Apache Iceberg 2021.04.25 Flink+Iceberg Shanghai Meetup: How Flink and Iceberg Solve the Challenges of Data Lake Ingestion 2020.12.15 Flink Forward Asia 2020 Beijing: How to Analyze CDC Data in Iceberg Data Lake Using Flink, Blog 2019.07.20 HBaseConAsia 2019 Beijing: Further GC optimization for HBase 2.x: Reading HFileBlock into offheap directly. 2018.10.18 小米内部科普HBase读路径 PDF 2018.06.18 HBaseConWest2018 美国湾区-圣何塞(San Jose)分享《HBase Practice In XiaoMi》 PPT Video 2017.</description>
+      <description>2021.01.08 Flink Forward Asia 2021 Beijing: The Best Practice of Integrating Apache Flink with Apache Iceberg 2021.04.25 Flink+Iceberg Shanghai Meetup: How Flink and Iceberg Solve the Challenges of Data Lake Ingestion 2020.12.15 Flink Forward Asia 2020 Beijing: How to Analyze CDC Data in Iceberg Data Lake Using Flink, Blog 2019.07.20 HBaseConAsia 2019 Beijing: Further GC optimization for HBase 2.x: Reading HFileBlock into offheap directly. 2018.10.18 Internal Xiaomi talk on the HBase read path PDF 2018.</description>
     </item>
   </channel>
 </rss>

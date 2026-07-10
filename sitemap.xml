@@ -2,16 +2,16 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://openinx.github.io/</loc>
+    <lastmod>2025-10-04T20:47:06-07:00</lastmod>
+  </url><url>
+    <loc>https://openinx.github.io/posts/</loc>
+    <lastmod>2025-10-04T20:47:06-07:00</lastmod>
+  </url><url>
     <loc>https://openinx.github.io/tags/ai/</loc>
     <lastmod>2025-05-11T20:22:24-07:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/tags/databricks/</loc>
-    <lastmod>2025-05-11T20:22:24-07:00</lastmod>
-  </url><url>
-    <loc>https://openinx.github.io/</loc>
-    <lastmod>2025-05-11T20:22:24-07:00</lastmod>
-  </url><url>
-    <loc>https://openinx.github.io/posts/</loc>
     <lastmod>2025-05-11T20:22:24-07:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/tags/saas/</loc>
@@ -74,19 +74,19 @@
     <loc>https://openinx.github.io/posts/2019-10-26-pingcap-hackthon2019/</loc>
     <lastmod>2019-10-26T13:16:43+08:00</lastmod>
   </url><url>
-    <loc>https://openinx.github.io/tags/hbase/</loc>
+    <loc>https://openinx.github.io/posts/2019-09-10-tuning-the-hbase-2-write-performance/</loc>
     <lastmod>2019-09-10T13:27:08+08:00</lastmod>
   </url><url>
-    <loc>https://openinx.github.io/posts/2019-09-10-tuning-the-hbase-2-write-performance/</loc>
+    <loc>https://openinx.github.io/tags/hbase/</loc>
     <lastmod>2019-09-10T13:27:08+08:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/tags/apache/</loc>
     <lastmod>2019-09-06T13:27:08+08:00</lastmod>
   </url><url>
-    <loc>https://openinx.github.io/posts/2019-09-06-hbase-princple-and-practice/</loc>
+    <loc>https://openinx.github.io/posts/2019-07-15-future-work-for-hbase2.x/</loc>
     <lastmod>2019-09-06T13:27:08+08:00</lastmod>
   </url><url>
-    <loc>https://openinx.github.io/posts/2019-07-15-future-work-for-hbase2.x/</loc>
+    <loc>https://openinx.github.io/posts/2019-09-06-hbase-princple-and-practice/</loc>
     <lastmod>2019-09-06T13:27:08+08:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/posts/2019-07-08-hbaseconasia2019-is-coming/</loc>
@@ -167,10 +167,10 @@
     <loc>https://openinx.github.io/posts/2013-01-01-plane-sweep-thinking/</loc>
     <lastmod>2013-01-01T13:27:08+08:00</lastmod>
   </url><url>
-    <loc>https://openinx.github.io/tags/share/</loc>
+    <loc>https://openinx.github.io/posts/2012-01-01-my-share/</loc>
     <lastmod>2012-01-01T13:27:08+08:00</lastmod>
   </url><url>
-    <loc>https://openinx.github.io/posts/2012-01-01-my-share/</loc>
+    <loc>https://openinx.github.io/tags/share/</loc>
     <lastmod>2012-01-01T13:27:08+08:00</lastmod>
   </url><url>
     <loc>https://openinx.github.io/categories/</loc>
