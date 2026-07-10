@@ -46,8 +46,8 @@
       <link>https://openinx.github.io/about/</link>
       <pubDate>Sun, 17 Jul 2022 11:07:35 +0800</pubDate>
       <guid>https://openinx.github.io/about/</guid>
-      <description>Hi, I&amp;rsquo;m Zheng Hu — a Staff Software Engineer with deep roots in big data infrastructure and open-source communities. I&amp;rsquo;m a PMC member of Apache HBase and Apache Iceberg, and the author of the book &amp;lsquo;HBase Principles and Practice&amp;rsquo;. Over the past decade, I’ve worked at ByteDance, Alibaba Cloud, Xiaomi, and more, building large-scale systems in cloud data platforms, distributed filesystems, and data lake analytics.
-Currently, I lead the EMR open-source engine team at ByteDance, where I’ve built foundational services like Proton, a distributed filesystem optimized for object storage, and launched a fully-managed StarRocks analytics service.</description>
+      <description>Hi, I&amp;rsquo;m Zheng Hu — a Staff Software Engineer with deep roots in big data infrastructure and open-source communities. I&amp;rsquo;m a PMC member of Apache HBase and Apache Iceberg, and the author of the book &amp;lsquo;HBase Principles and Practice&amp;rsquo;. Over the past decade, I&amp;rsquo;ve worked at Databricks, ByteDance, Alibaba Cloud, Xiaomi, and more, building large-scale systems in cloud data platforms, distributed filesystems, and data lake analytics.
+Currently, I&amp;rsquo;m at Databricks, working on the lakehouse platform and open-source data technologies.</description>
     </item>
     <item>
       <title>SQL Server&#39;s Column Store Update Design</title>
